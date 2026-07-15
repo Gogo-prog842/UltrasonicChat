@@ -1,0 +1,2 @@
+-keep class com.tc20.localmusic.data.** { *; }
+-keep class androidx.media3.** { *; }
