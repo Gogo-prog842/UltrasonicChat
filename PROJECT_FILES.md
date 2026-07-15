@@ -1,57 +1,94 @@
-# Ultrasonic Messenger — kompletna zawartość plików
+# Ultrasonic Chat — kompletna struktura i zawartość plików
 
-## `.gitignore`
+## Struktura projektu
 
 ```text
-.gradle/
-.idea/
-local.properties
-*.iml
-/build/
-/app/build/
-/captures/
-.externalNativeBuild/
-.cxx/
-
+.gitignore
+README.md
+app/build.gradle
+app/proguard-rules.pro
+app/src/main/AndroidManifest.xml
+app/src/main/java/com/przyklad/soundboard/ChatMessage.java
+app/src/main/java/com/przyklad/soundboard/MainActivity.java
+app/src/main/java/com/przyklad/soundboard/MessageAdapter.java
+app/src/main/java/com/przyklad/soundboard/UltrasonicModem.java
+app/src/main/res/drawable/ic_app.xml
+app/src/main/res/drawable/ic_send.xml
+app/src/main/res/drawable/input_container.xml
+app/src/main/res/drawable/receive_bubble.xml
+app/src/main/res/drawable/send_bubble.xml
+app/src/main/res/drawable/send_button_background.xml
+app/src/main/res/drawable/status_dot.xml
+app/src/main/res/layout/activity_main.xml
+app/src/main/res/layout/item_message.xml
+app/src/main/res/values-night/themes.xml
+app/src/main/res/values/colors.xml
+app/src/main/res/values/strings.xml
+app/src/main/res/values/themes.xml
+build.gradle
+gradle.properties
+gradle/wrapper/gradle-wrapper.jar
+gradle/wrapper/gradle-wrapper.properties
+gradlew
+gradlew.bat
+settings.gradle
 ```
 
-## `README.md`
+## Plik binarny Gradle Wrapper
 
-```text
-# Ultrasonic Messenger
+`gradle/wrapper/gradle-wrapper.jar` jest dołączony do projektu i ZIP-a.
+SHA-256: `423cb469ccc0ecc31f0e4e1c309976198ccb734cdcbb7029d4bda0f18f57e8d9`
 
-Kompletny projekt demonstracyjnej aplikacji Android napisanej w Javie. Aplikacja tworzy osobne rozmowy dla nicku i wybranego kanału częstotliwości, zapisuje historię lokalnie i przesyła tekst przez wysokie tony generowane przez `AudioTrack`.
+## `settings.gradle`
 
-## Uruchomienie
+```groovy
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
 
-1. Rozpakuj projekt i otwórz folder `UltrasonicMessenger` w Android Studio.
-2. Ustaw Gradle JDK na JDK 17–22. Gradle 8.13 działa na JDK 22, natomiast kod aplikacji generuje bytecode Java 17 zgodny z Androidem.
-3. Zainstaluj Android SDK 36.
-4. Uruchom aplikację na dwóch fizycznych telefonach.
-5. Na obu urządzeniach wybierz ten sam kanał i zezwól na mikrofon.
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
 
-## Kanały
+rootProject.name = "Ultrasonic Chat"
+include ':app'
+```
 
-- Kanał 1: centrum około 17 kHz, używane tony 16,7–17,3 kHz.
-- Kanał 2: centrum około 18 kHz, używane tony 17,7–18,3 kHz.
-- Kanał 3: centrum około 19 kHz, używane tony 18,7–19,3 kHz.
+## `build.gradle`
 
-## Protokół
+```groovy
+plugins {
+    id 'com.android.application' version '8.13.2' apply false
+}
+```
 
-Bezpośredni wzór `17000 + char * 20` przekraczałby pasmo wybranego kanału i dla wielu znaków wychodził ponad 20 kHz. Projekt używa stabilniejszej modulacji 4-FSK:
+## `gradle.properties`
 
-- 4 częstotliwości danych kodują wartości 2-bitowe,
-- każdy bajt UTF-8 jest przesyłany jako 4 tony,
-- każdy ton trwa 400 ms, po nim jest 100 ms ciszy,
-- ramka zawiera trzy symbole START, 2-bajtową długość, tekst UTF-8, CRC-8 i dwa symbole END,
-- odbiornik analizuje próbki PCM przez FFT i dekoduje dominujące częstotliwości.
+```properties
+org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+android.useAndroidX=true
+android.nonTransitiveRClass=true
+```
 
-## Ważne ograniczenia sprzętowe
+## `gradle/wrapper/gradle-wrapper.properties`
 
-Część telefonów filtruje częstotliwości powyżej 18 kHz albo ma słaby głośnik/mikrofon w tym paśmie. Najlepiej testować w cichym pomieszczeniu, z głośnością około 70–90%, w odległości 10–40 cm. Kanał 17 kHz zwykle ma największą kompatybilność, ale może być słyszalny dla młodszych osób.
-
-Odbiornik działa w osobnym wątku podczas otwartego ekranu czatu. Stały odbiór po wygaszeniu ekranu wymagałby osobnego foreground service z trwałym powiadomieniem.
-
+```properties
+distributionBase=GRADLE_USER_HOME
+distributionPath=wrapper/dists
+distributionUrl=https\://services.gradle.org/distributions/gradle-8.13-bin.zip
+distributionSha256Sum=20f1b1176237254a6fc204d8434196fa11a4cfb387567519c61556e8710aed78
+networkTimeout=10000
+validateDistributionUrl=true
+zipStoreBase=GRADLE_USER_HOME
+zipStorePath=wrapper/dists
 ```
 
 ## `app/build.gradle`
@@ -68,7 +105,7 @@ android {
     defaultConfig {
         applicationId 'com.przyklad.soundboard'
         minSdk 26
-        targetSdk 35
+        targetSdk 36
         versionCode 1
         versionName '1.0'
     }
@@ -81,7 +118,8 @@ android {
     }
 
     compileOptions {
-        // Gradle może działać na JDK 22. Kod Androida kompilujemy do wspieranego bytecode Java 17.
+        // Gradle może działać na JDK 22, ale kod Androida jest kompilowany
+        // do oficjalnie wspieranego poziomu bytecode Java 17.
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
@@ -94,14 +132,12 @@ dependencies {
     implementation 'androidx.recyclerview:recyclerview:1.4.0'
     implementation 'com.google.android.material:material:1.12.0'
 }
-
 ```
 
 ## `app/proguard-rules.pro`
 
 ```text
 # Projekt demonstracyjny nie wymaga dodatkowych reguł ProGuard/R8.
-
 ```
 
 ## `app/src/main/AndroidManifest.xml`
@@ -111,9 +147,14 @@ dependencies {
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
     <uses-feature
         android:name="android.hardware.microphone"
-        android:required="false" />
+        android:required="true" />
+
+    <uses-feature
+        android:name="android.hardware.audio.output"
+        android:required="true" />
 
     <application
         android:allowBackup="true"
@@ -121,18 +162,12 @@ dependencies {
         android:label="@string/app_name"
         android:roundIcon="@drawable/ic_app"
         android:supportsRtl="true"
-        android:theme="@style/Theme.UltrasonicMessenger">
-
-        <activity
-            android:name=".ChatActivity"
-            android:exported="false"
-            android:screenOrientation="portrait"
-            android:windowSoftInputMode="adjustResize" />
+        android:theme="@style/Theme.UltrasonicChat">
 
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:screenOrientation="portrait">
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -142,403 +177,6 @@ dependencies {
     </application>
 
 </manifest>
-
-```
-
-## `app/src/main/java/com/przyklad/soundboard/ChatActivity.java`
-
-```java
-package com.przyklad.soundboard;
-
-import android.Manifest;
-import android.content.pm.PackageManager;
-import android.os.Bundle;
-import android.view.inputmethod.EditorInfo;
-import android.widget.ArrayAdapter;
-import android.widget.EditText;
-import android.widget.Spinner;
-import android.widget.TextView;
-import android.widget.Toast;
-
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowCompat;
-import androidx.core.view.WindowInsetsCompat;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
-
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Locale;
-
-public final class ChatActivity extends AppCompatActivity implements UltrasonicModem.Callback {
-    private ChatRepository repository;
-    private MessageAdapter messageAdapter;
-    private RecyclerView messagesRecyclerView;
-    private EditText messageInput;
-    private FloatingActionButton sendButton;
-    private Spinner channelSpinner;
-    private TextView statusText;
-
-    private String nickname;
-    private int channelIndex;
-    private boolean spinnerInitialized;
-    private boolean activityVisible;
-    private UltrasonicModem modem;
-
-    private final ActivityResultLauncher<String> microphonePermissionLauncher =
-            registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
-                if (granted) {
-                    startListeningIfPossible();
-                } else {
-                    statusText.setText(R.string.microphone_off);
-                    Toast.makeText(this, R.string.permission_denied, Toast.LENGTH_LONG).show();
-                }
-            });
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
-        setContentView(R.layout.activity_chat);
-        applySystemBarInsets(findViewById(R.id.chatRoot));
-
-        nickname = getIntent().getStringExtra(MainActivity.EXTRA_NICKNAME);
-        channelIndex = getIntent().getIntExtra(MainActivity.EXTRA_CHANNEL, 0);
-        if (nickname == null || nickname.isBlank() || channelIndex < 0 || channelIndex > 2) {
-            finish();
-            return;
-        }
-
-        repository = new ChatRepository(this);
-        repository.ensureConversation(nickname, channelIndex);
-
-        TextView nicknameText = findViewById(R.id.nicknameText);
-        TextView avatarInitial = findViewById(R.id.avatarInitial);
-        statusText = findViewById(R.id.statusText);
-        nicknameText.setText(nickname);
-        avatarInitial.setText(nickname.substring(0, 1).toUpperCase(Locale.ROOT));
-        findViewById(R.id.backButton).setOnClickListener(view -> finish());
-
-        messagesRecyclerView = findViewById(R.id.messagesRecyclerView);
-        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
-        layoutManager.setStackFromEnd(true);
-        messagesRecyclerView.setLayoutManager(layoutManager);
-        messageAdapter = new MessageAdapter();
-        messagesRecyclerView.setAdapter(messageAdapter);
-
-        messageInput = findViewById(R.id.messageInput);
-        sendButton = findViewById(R.id.sendButton);
-        sendButton.setOnClickListener(view -> sendCurrentMessage());
-        messageInput.setOnEditorActionListener((view, actionId, event) -> {
-            if (actionId == EditorInfo.IME_ACTION_SEND) {
-                sendCurrentMessage();
-                return true;
-            }
-            return false;
-        });
-
-        channelSpinner = findViewById(R.id.channelSpinner);
-        ArrayAdapter<CharSequence> spinnerAdapter = ArrayAdapter.createFromResource(
-                this,
-                R.array.channel_labels,
-                android.R.layout.simple_spinner_item
-        );
-        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        channelSpinner.setAdapter(spinnerAdapter);
-        channelSpinner.setSelection(channelIndex, false);
-        channelSpinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(android.widget.AdapterView<?> parent, android.view.View view, int position, long id) {
-                if (!spinnerInitialized) {
-                    spinnerInitialized = true;
-                    return;
-                }
-                switchChannel(position);
-            }
-
-            @Override
-            public void onNothingSelected(android.widget.AdapterView<?> parent) {
-                // Kanał zawsze pozostaje wybrany.
-            }
-        });
-
-        modem = new UltrasonicModem(channelIndex, this);
-        loadCurrentConversation();
-        ensureMicrophonePermission();
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        activityVisible = true;
-        startListeningIfPossible();
-    }
-
-    @Override
-    protected void onStop() {
-        activityVisible = false;
-        if (modem != null) {
-            modem.stopReceiver();
-        }
-        super.onStop();
-    }
-
-    @Override
-    protected void onDestroy() {
-        if (modem != null) {
-            modem.close();
-        }
-        super.onDestroy();
-    }
-
-    private void sendCurrentMessage() {
-        String text = messageInput.getText().toString().trim();
-        if (text.isEmpty()) {
-            return;
-        }
-
-        if (text.getBytes(StandardCharsets.UTF_8).length > UltrasonicModem.MAX_PAYLOAD_BYTES) {
-            Toast.makeText(this, R.string.message_too_long, Toast.LENGTH_LONG).show();
-            return;
-        }
-
-        if (!modem.send(text)) {
-            Toast.makeText(this, R.string.busy, Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        ChatMessage message = new ChatMessage(text, true, System.currentTimeMillis());
-        repository.appendMessage(nickname, channelIndex, message);
-        messageAdapter.addMessage(message);
-        scrollToBottom();
-        messageInput.setText("");
-    }
-
-    private void switchChannel(int newChannel) {
-        if (newChannel == channelIndex) {
-            return;
-        }
-        if (modem.isTransmitting()) {
-            Toast.makeText(this, R.string.busy, Toast.LENGTH_SHORT).show();
-            channelSpinner.setSelection(channelIndex, false);
-            return;
-        }
-
-        channelIndex = newChannel;
-        repository.ensureConversation(nickname, channelIndex);
-        modem.setChannel(channelIndex);
-        loadCurrentConversation();
-        startListeningIfPossible();
-    }
-
-    private void loadCurrentConversation() {
-        String id = ChatRepository.conversationId(nickname, channelIndex);
-        List<ChatMessage> messages = repository.getMessages(id);
-        messageAdapter.submitList(messages);
-        scrollToBottom();
-    }
-
-    private void scrollToBottom() {
-        messagesRecyclerView.post(() -> messagesRecyclerView.scrollToPosition(messageAdapter.getLastPosition()));
-    }
-
-    private void ensureMicrophonePermission() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
-                == PackageManager.PERMISSION_GRANTED) {
-            startListeningIfPossible();
-            return;
-        }
-
-        if (shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO)) {
-            new AlertDialog.Builder(this)
-                    .setTitle(R.string.permission_title)
-                    .setMessage(R.string.permission_message)
-                    .setPositiveButton("Zezwól", (dialog, which) ->
-                            microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO))
-                    .setNegativeButton(R.string.cancel, null)
-                    .show();
-        } else {
-            microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO);
-        }
-    }
-
-    private void startListeningIfPossible() {
-        if (!activityVisible || modem == null) {
-            return;
-        }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
-                == PackageManager.PERMISSION_GRANTED) {
-            modem.startReceiver();
-        }
-    }
-
-    @Override
-    public void onReceiverStateChanged(boolean active) {
-        runOnUiThread(() -> statusText.setText(active
-                ? getString(R.string.channel_status, channelIndex + 1, getString(R.string.listening))
-                : getString(R.string.microphone_off)));
-    }
-
-    @Override
-    public void onTransmissionStateChanged(boolean active) {
-        runOnUiThread(() -> {
-            sendButton.setEnabled(!active);
-            channelSpinner.setEnabled(!active);
-            statusText.setText(active
-                    ? getString(R.string.transmitting)
-                    : getString(R.string.channel_status, channelIndex + 1, getString(R.string.listening)));
-        });
-    }
-
-    @Override
-    public void onMessageReceived(@NonNull String messageText) {
-        runOnUiThread(() -> {
-            ChatMessage message = new ChatMessage(messageText, false, System.currentTimeMillis());
-            repository.appendMessage(nickname, channelIndex, message);
-            messageAdapter.addMessage(message);
-            scrollToBottom();
-        });
-    }
-
-    @Override
-    public void onError(@NonNull String message) {
-        runOnUiThread(() -> Toast.makeText(this, message, Toast.LENGTH_LONG).show());
-    }
-
-    private void applySystemBarInsets(@NonNull android.view.View root) {
-        ViewCompat.setOnApplyWindowInsetsListener(root, (view, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
-            int bottom = Math.max(systemBars.bottom, ime.bottom);
-            view.setPadding(systemBars.left, systemBars.top, systemBars.right, bottom);
-            return insets;
-        });
-    }
-}
-
-```
-
-## `app/src/main/java/com/przyklad/soundboard/ChatListAdapter.java`
-
-```java
-package com.przyklad.soundboard;
-
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.TextView;
-
-import androidx.annotation.NonNull;
-import androidx.recyclerview.widget.RecyclerView;
-
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
-
-public final class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ChatViewHolder> {
-    public interface Listener {
-        void onChatClicked(@NonNull ChatSummary summary);
-    }
-
-    private final Listener listener;
-    private final List<ChatSummary> allItems = new ArrayList<>();
-    private final List<ChatSummary> visibleItems = new ArrayList<>();
-    private final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
-
-    public ChatListAdapter(@NonNull Listener listener) {
-        this.listener = listener;
-    }
-
-    public void submitList(@NonNull List<ChatSummary> items) {
-        allItems.clear();
-        allItems.addAll(items);
-        visibleItems.clear();
-        visibleItems.addAll(items);
-        notifyDataSetChanged();
-    }
-
-    public void filter(@NonNull String query) {
-        String normalized = query.trim().toLowerCase(Locale.ROOT);
-        visibleItems.clear();
-        if (normalized.isEmpty()) {
-            visibleItems.addAll(allItems);
-        } else {
-            for (ChatSummary item : allItems) {
-                if (item.getNickname().toLowerCase(Locale.ROOT).contains(normalized)) {
-                    visibleItems.add(item);
-                }
-            }
-        }
-        notifyDataSetChanged();
-    }
-
-    public boolean isEmpty() {
-        return visibleItems.isEmpty();
-    }
-
-    @NonNull
-    @Override
-    public ChatViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_chat_list, parent, false);
-        return new ChatViewHolder(view);
-    }
-
-    @Override
-    public void onBindViewHolder(@NonNull ChatViewHolder holder, int position) {
-        ChatSummary item = visibleItems.get(position);
-        holder.nicknameText.setText(item.getNickname());
-        holder.lastMessageText.setText(item.getLastMessage());
-        holder.channelText.setText(holder.itemView.getContext().getString(
-                R.string.channel_badge,
-                item.getChannelIndex() + 1
-        ));
-        holder.avatarInitial.setText(initialFor(item.getNickname()));
-        holder.timeText.setText(item.getLastTimestamp() == 0L
-                ? ""
-                : timeFormat.format(new Date(item.getLastTimestamp())));
-        holder.itemView.setOnClickListener(view -> listener.onChatClicked(item));
-    }
-
-    @Override
-    public int getItemCount() {
-        return visibleItems.size();
-    }
-
-    private static String initialFor(String nickname) {
-        String trimmed = nickname.trim();
-        return trimmed.isEmpty() ? "?" : trimmed.substring(0, 1).toUpperCase(Locale.ROOT);
-    }
-
-    static final class ChatViewHolder extends RecyclerView.ViewHolder {
-        final TextView avatarInitial;
-        final TextView nicknameText;
-        final TextView lastMessageText;
-        final TextView timeText;
-        final TextView channelText;
-
-        ChatViewHolder(@NonNull View itemView) {
-            super(itemView);
-            avatarInitial = itemView.findViewById(R.id.avatarInitial);
-            nicknameText = itemView.findViewById(R.id.nicknameText);
-            lastMessageText = itemView.findViewById(R.id.lastMessageText);
-            timeText = itemView.findViewById(R.id.timeText);
-            channelText = itemView.findViewById(R.id.channelText);
-        }
-    }
-}
-
 ```
 
 ## `app/src/main/java/com/przyklad/soundboard/ChatMessage.java`
@@ -549,12 +187,10 @@ package com.przyklad.soundboard;
 public final class ChatMessage {
     private final String text;
     private final boolean sentByMe;
-    private final long timestamp;
 
-    public ChatMessage(String text, boolean sentByMe, long timestamp) {
+    public ChatMessage(String text, boolean sentByMe) {
         this.text = text;
         this.sentByMe = sentByMe;
-        this.timestamp = timestamp;
     }
 
     public String getText() {
@@ -564,399 +200,7 @@ public final class ChatMessage {
     public boolean isSentByMe() {
         return sentByMe;
     }
-
-    public long getTimestamp() {
-        return timestamp;
-    }
 }
-
-```
-
-## `app/src/main/java/com/przyklad/soundboard/ChatRepository.java`
-
-```java
-package com.przyklad.soundboard;
-
-import android.content.Context;
-import android.content.SharedPreferences;
-
-import androidx.annotation.NonNull;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
-
-public final class ChatRepository {
-    private static final String PREFS_NAME = "ultrasonic_messenger_data";
-    private static final String KEY_CONVERSATIONS = "conversations";
-    private static final String MESSAGE_PREFIX = "messages_";
-
-    private final SharedPreferences preferences;
-
-    public ChatRepository(@NonNull Context context) {
-        preferences = context.getApplicationContext()
-                .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-    }
-
-    public static String conversationId(@NonNull String nickname, int channelIndex) {
-        String normalized = nickname.trim().toLowerCase(Locale.ROOT)
-                .replaceAll("[^a-z0-9ąćęłńóśźż_-]+", "_");
-        if (normalized.isBlank()) {
-            normalized = Integer.toHexString(Arrays.hashCode(nickname.getBytes(StandardCharsets.UTF_8)));
-        }
-        return normalized + "_channel_" + channelIndex;
-    }
-
-    public synchronized void ensureConversation(@NonNull String nickname, int channelIndex) {
-        String id = conversationId(nickname, channelIndex);
-        List<ChatSummary> conversations = getConversations();
-        for (ChatSummary summary : conversations) {
-            if (summary.getId().equals(id)) {
-                return;
-            }
-        }
-        conversations.add(new ChatSummary(id, nickname.trim(), channelIndex, "Brak wiadomości", 0L));
-        saveConversations(conversations);
-    }
-
-    public synchronized List<ChatSummary> getConversations() {
-        List<ChatSummary> result = new ArrayList<>();
-        String raw = preferences.getString(KEY_CONVERSATIONS, "[]");
-        try {
-            JSONArray array = new JSONArray(raw);
-            for (int i = 0; i < array.length(); i++) {
-                JSONObject object = array.getJSONObject(i);
-                result.add(new ChatSummary(
-                        object.getString("id"),
-                        object.getString("nickname"),
-                        object.getInt("channel"),
-                        object.optString("lastMessage", "Brak wiadomości"),
-                        object.optLong("lastTimestamp", 0L)
-                ));
-            }
-        } catch (JSONException ignored) {
-            preferences.edit().remove(KEY_CONVERSATIONS).apply();
-        }
-        result.sort(Comparator.comparingLong(ChatSummary::getLastTimestamp).reversed());
-        return result;
-    }
-
-    public synchronized List<ChatMessage> getMessages(@NonNull String conversationId) {
-        List<ChatMessage> result = new ArrayList<>();
-        String raw = preferences.getString(MESSAGE_PREFIX + conversationId, "[]");
-        try {
-            JSONArray array = new JSONArray(raw);
-            for (int i = 0; i < array.length(); i++) {
-                JSONObject object = array.getJSONObject(i);
-                result.add(new ChatMessage(
-                        object.getString("text"),
-                        object.getBoolean("sentByMe"),
-                        object.getLong("timestamp")
-                ));
-            }
-        } catch (JSONException ignored) {
-            preferences.edit().remove(MESSAGE_PREFIX + conversationId).apply();
-        }
-        return result;
-    }
-
-    public synchronized void appendMessage(
-            @NonNull String nickname,
-            int channelIndex,
-            @NonNull ChatMessage message
-    ) {
-        String id = conversationId(nickname, channelIndex);
-        List<ChatMessage> messages = getMessages(id);
-        messages.add(message);
-
-        JSONArray messageArray = new JSONArray();
-        try {
-            for (ChatMessage item : messages) {
-                JSONObject object = new JSONObject();
-                object.put("text", item.getText());
-                object.put("sentByMe", item.isSentByMe());
-                object.put("timestamp", item.getTimestamp());
-                messageArray.put(object);
-            }
-        } catch (JSONException exception) {
-            throw new IllegalStateException("Nie udało się zapisać wiadomości", exception);
-        }
-
-        preferences.edit()
-                .putString(MESSAGE_PREFIX + id, messageArray.toString())
-                .apply();
-
-        List<ChatSummary> conversations = getConversations();
-        boolean updated = false;
-        for (int i = 0; i < conversations.size(); i++) {
-            ChatSummary current = conversations.get(i);
-            if (current.getId().equals(id)) {
-                conversations.set(i, new ChatSummary(
-                        id,
-                        nickname.trim(),
-                        channelIndex,
-                        message.getText(),
-                        message.getTimestamp()
-                ));
-                updated = true;
-                break;
-            }
-        }
-        if (!updated) {
-            conversations.add(new ChatSummary(
-                    id,
-                    nickname.trim(),
-                    channelIndex,
-                    message.getText(),
-                    message.getTimestamp()
-            ));
-        }
-        saveConversations(conversations);
-    }
-
-    private void saveConversations(@NonNull List<ChatSummary> conversations) {
-        JSONArray array = new JSONArray();
-        try {
-            for (ChatSummary summary : conversations) {
-                JSONObject object = new JSONObject();
-                object.put("id", summary.getId());
-                object.put("nickname", summary.getNickname());
-                object.put("channel", summary.getChannelIndex());
-                object.put("lastMessage", summary.getLastMessage());
-                object.put("lastTimestamp", summary.getLastTimestamp());
-                array.put(object);
-            }
-        } catch (JSONException exception) {
-            throw new IllegalStateException("Nie udało się zapisać listy rozmów", exception);
-        }
-        preferences.edit().putString(KEY_CONVERSATIONS, array.toString()).apply();
-    }
-}
-
-```
-
-## `app/src/main/java/com/przyklad/soundboard/ChatSummary.java`
-
-```java
-package com.przyklad.soundboard;
-
-public final class ChatSummary {
-    private final String id;
-    private final String nickname;
-    private final int channelIndex;
-    private final String lastMessage;
-    private final long lastTimestamp;
-
-    public ChatSummary(String id, String nickname, int channelIndex, String lastMessage, long lastTimestamp) {
-        this.id = id;
-        this.nickname = nickname;
-        this.channelIndex = channelIndex;
-        this.lastMessage = lastMessage;
-        this.lastTimestamp = lastTimestamp;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public String getNickname() {
-        return nickname;
-    }
-
-    public int getChannelIndex() {
-        return channelIndex;
-    }
-
-    public String getLastMessage() {
-        return lastMessage;
-    }
-
-    public long getLastTimestamp() {
-        return lastTimestamp;
-    }
-}
-
-```
-
-## `app/src/main/java/com/przyklad/soundboard/MainActivity.java`
-
-```java
-package com.przyklad.soundboard;
-
-import android.content.Intent;
-import android.os.Bundle;
-import android.text.InputType;
-import android.view.View;
-import android.widget.ArrayAdapter;
-import android.widget.EditText;
-import android.widget.LinearLayout;
-import android.widget.Spinner;
-import android.widget.TextView;
-import android.widget.Toast;
-
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowCompat;
-import androidx.core.view.WindowInsetsCompat;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
-
-public final class MainActivity extends AppCompatActivity {
-    public static final String EXTRA_NICKNAME = "nickname";
-    public static final String EXTRA_CHANNEL = "channel";
-
-    private ChatRepository repository;
-    private ChatListAdapter adapter;
-    private TextView emptyText;
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
-        setContentView(R.layout.activity_main);
-        applySystemBarInsets(findViewById(R.id.mainRoot));
-
-        repository = new ChatRepository(this);
-        emptyText = findViewById(R.id.emptyText);
-
-        RecyclerView recyclerView = findViewById(R.id.chatListRecyclerView);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new ChatListAdapter(this::openChat);
-        recyclerView.setAdapter(adapter);
-
-        findViewById(R.id.searchButton).setOnClickListener(view -> showSearchDialog());
-        FloatingActionButton fab = findViewById(R.id.newChatFab);
-        fab.setOnClickListener(view -> showNewChatDialog());
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        reloadConversations();
-    }
-
-    private void reloadConversations() {
-        adapter.submitList(repository.getConversations());
-        updateEmptyState();
-    }
-
-    private void updateEmptyState() {
-        emptyText.setVisibility(adapter.isEmpty() ? View.VISIBLE : View.GONE);
-    }
-
-    private void showSearchDialog() {
-        EditText input = new EditText(this);
-        input.setHint(R.string.search_hint);
-        input.setSingleLine(true);
-        input.setInputType(InputType.TYPE_CLASS_TEXT);
-        int padding = dp(20);
-        input.setPadding(padding, dp(8), padding, dp(8));
-
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.search)
-                .setView(input)
-                .setPositiveButton(R.string.search, (dialog, which) -> {
-                    adapter.filter(input.getText().toString());
-                    updateEmptyState();
-                })
-                .setNeutralButton("Wyczyść", (dialog, which) -> {
-                    adapter.filter("");
-                    updateEmptyState();
-                })
-                .setNegativeButton(R.string.cancel, null)
-                .show();
-    }
-
-    private void showNewChatDialog() {
-        LinearLayout container = new LinearLayout(this);
-        container.setOrientation(LinearLayout.VERTICAL);
-        int horizontal = dp(22);
-        container.setPadding(horizontal, dp(6), horizontal, 0);
-
-        EditText nicknameInput = new EditText(this);
-        nicknameInput.setHint(R.string.nickname);
-        nicknameInput.setSingleLine(true);
-        nicknameInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS);
-        container.addView(nicknameInput, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        ));
-
-        Spinner channelSpinner = new Spinner(this);
-        ArrayAdapter<CharSequence> spinnerAdapter = ArrayAdapter.createFromResource(
-                this,
-                R.array.channel_labels,
-                android.R.layout.simple_spinner_item
-        );
-        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        channelSpinner.setAdapter(spinnerAdapter);
-        LinearLayout.LayoutParams spinnerParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(54)
-        );
-        spinnerParams.topMargin = dp(10);
-        container.addView(channelSpinner, spinnerParams);
-
-        AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle(R.string.new_chat)
-                .setView(container)
-                .setPositiveButton(R.string.create, null)
-                .setNegativeButton(R.string.cancel, null)
-                .create();
-
-        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-                .setOnClickListener(view -> {
-                    String nickname = nicknameInput.getText().toString().trim();
-                    if (nickname.isEmpty()) {
-                        nicknameInput.setError(getString(R.string.invalid_nickname));
-                        return;
-                    }
-                    int channel = channelSpinner.getSelectedItemPosition();
-                    repository.ensureConversation(nickname, channel);
-                    dialog.dismiss();
-                    openChat(new ChatSummary(
-                            ChatRepository.conversationId(nickname, channel),
-                            nickname,
-                            channel,
-                            "Brak wiadomości",
-                            0L
-                    ));
-                }));
-        dialog.show();
-    }
-
-    private void openChat(@NonNull ChatSummary summary) {
-        Intent intent = new Intent(this, ChatActivity.class);
-        intent.putExtra(EXTRA_NICKNAME, summary.getNickname());
-        intent.putExtra(EXTRA_CHANNEL, summary.getChannelIndex());
-        startActivity(intent);
-    }
-
-    private void applySystemBarInsets(@NonNull View root) {
-        ViewCompat.setOnApplyWindowInsetsListener(root, (view, insets) -> {
-            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
-            return insets;
-        });
-    }
-
-    private int dp(int value) {
-        return Math.round(value * getResources().getDisplayMetrics().density);
-    }
-}
-
 ```
 
 ## `app/src/main/java/com/przyklad/soundboard/MessageAdapter.java`
@@ -964,40 +208,44 @@ public final class MainActivity extends AppCompatActivity {
 ```java
 package com.przyklad.soundboard;
 
+import android.content.Context;
 import android.graphics.Color;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.LinearLayout;
+import android.widget.FrameLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 
 public final class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageViewHolder> {
+
     private final List<ChatMessage> messages = new ArrayList<>();
-    private final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
 
-    public void submitList(@NonNull List<ChatMessage> newMessages) {
-        messages.clear();
-        messages.addAll(newMessages);
-        notifyDataSetChanged();
-    }
-
-    public void addMessage(@NonNull ChatMessage message) {
+    public void addMessage(ChatMessage message) {
         messages.add(message);
         notifyItemInserted(messages.size() - 1);
     }
 
-    public int getLastPosition() {
-        return Math.max(0, messages.size() - 1);
+    public void replaceMessages(List<ChatMessage> restoredMessages) {
+        messages.clear();
+        messages.addAll(restoredMessages);
+        notifyDataSetChanged();
+    }
+
+    public List<ChatMessage> snapshot() {
+        return Collections.unmodifiableList(new ArrayList<>(messages));
+    }
+
+    public boolean isEmpty() {
+        return messages.isEmpty();
     }
 
     @NonNull
@@ -1010,23 +258,7 @@ public final class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.Me
 
     @Override
     public void onBindViewHolder(@NonNull MessageViewHolder holder, int position) {
-        ChatMessage message = messages.get(position);
-        holder.messageText.setText(message.getText());
-        holder.messageTime.setText(timeFormat.format(new Date(message.getTimestamp())));
-
-        LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) holder.bubbleContainer.getLayoutParams();
-        if (message.isSentByMe()) {
-            params.gravity = Gravity.END;
-            holder.bubbleContainer.setBackgroundResource(R.drawable.send_bubble);
-            holder.messageText.setTextColor(Color.WHITE);
-            holder.messageTime.setTextColor(0xCCFFFFFF);
-        } else {
-            params.gravity = Gravity.START;
-            holder.bubbleContainer.setBackgroundResource(R.drawable.receive_bubble);
-            holder.messageText.setTextColor(holder.itemView.getContext().getColor(R.color.text_primary));
-            holder.messageTime.setTextColor(holder.itemView.getContext().getColor(R.color.text_secondary));
-        }
-        holder.bubbleContainer.setLayoutParams(params);
+        holder.bind(messages.get(position));
     }
 
     @Override
@@ -1035,19 +267,44 @@ public final class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.Me
     }
 
     static final class MessageViewHolder extends RecyclerView.ViewHolder {
-        final LinearLayout bubbleContainer;
-        final TextView messageText;
-        final TextView messageTime;
+        private final TextView messageText;
 
         MessageViewHolder(@NonNull View itemView) {
             super(itemView);
-            bubbleContainer = itemView.findViewById(R.id.bubbleContainer);
             messageText = itemView.findViewById(R.id.messageText);
-            messageTime = itemView.findViewById(R.id.messageTime);
+        }
+
+        void bind(ChatMessage message) {
+            Context context = itemView.getContext();
+            messageText.setText(message.getText());
+
+            FrameLayout.LayoutParams params =
+                    (FrameLayout.LayoutParams) messageText.getLayoutParams();
+
+            int sideMargin = dp(context, 64);
+            if (message.isSentByMe()) {
+                params.gravity = Gravity.END;
+                params.setMargins(sideMargin, 0, 0, 0);
+                messageText.setBackground(
+                        ContextCompat.getDrawable(context, R.drawable.send_bubble));
+                messageText.setTextColor(Color.WHITE);
+            } else {
+                params.gravity = Gravity.START;
+                params.setMargins(0, 0, sideMargin, 0);
+                messageText.setBackground(
+                        ContextCompat.getDrawable(context, R.drawable.receive_bubble));
+                messageText.setTextColor(
+                        ContextCompat.getColor(context, R.color.received_text));
+            }
+
+            messageText.setLayoutParams(params);
+        }
+
+        private static int dp(Context context, int value) {
+            return Math.round(value * context.getResources().getDisplayMetrics().density);
         }
     }
 }
-
 ```
 
 ## `app/src/main/java/com/przyklad/soundboard/UltrasonicModem.java`
@@ -1055,7 +312,6 @@ public final class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.Me
 ```java
 package com.przyklad.soundboard;
 
-import android.annotation.SuppressLint;
 import android.media.AudioAttributes;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
@@ -1078,47 +334,53 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Modem akustyczny 4-FSK dla trzech kanałów około 17, 18 i 19 kHz.
+ * Prosty modem akustyczny pracujący w paśmie 18–20 kHz.
  *
- * Każdy ton danych przenosi 2 bity (wartość 0..3). Pozwala to utrzymać
- * wszystkie częstotliwości w realnym paśmie głośników/mikrofonów telefonu.
- * Odbiornik wykonuje FFT na oknach PCM i wybiera dominującą częstotliwość.
+ * Format ramki:
+ *  - START x3
+ *  - długość payloadu: 1 bajt zapisany jako dwa tony (nibble high/low)
+ *  - tekst UTF-8, każdy bajt jako dwa tony
+ *  - CRC-8 jako dwa tony
+ *  - END x2
  *
- * Ramka:
- * START x3, długość UTF-8 (2 bajty), payload, CRC-8, END x2.
+ * 16 wartości nibble jest mapowanych na 18 200–19 700 Hz co 100 Hz.
+ * Osobne częstotliwości 18 000 Hz i 19 900 Hz oznaczają START/END.
  */
 public final class UltrasonicModem implements AutoCloseable {
+
     public interface Callback {
         void onReceiverStateChanged(boolean active);
+
         void onTransmissionStateChanged(boolean active);
+
         void onMessageReceived(@NonNull String message);
+
         void onError(@NonNull String message);
     }
 
-    public static final int MAX_PAYLOAD_BYTES = 240;
+    public static final int MAX_PAYLOAD_BYTES = 120;
 
     private static final int SAMPLE_RATE = 48_000;
-    private static final int TONE_DURATION_MS = 400;
+    private static final int TONE_DURATION_MS = 300;
     private static final int GAP_DURATION_MS = 100;
-    private static final int FFT_SIZE = 2_048;
+    private static final int ANALYSIS_WINDOW_MS = 50;
+
+    private static final int START_SYMBOL = 16;
+    private static final int END_SYMBOL = 17;
+    private static final int SYMBOL_NONE = -1;
+
+    private static final double START_FREQUENCY = 18_000.0;
+    private static final double DATA_BASE_FREQUENCY = 18_200.0;
+    private static final double DATA_STEP_FREQUENCY = 100.0;
+    private static final double END_FREQUENCY = 19_900.0;
+
     private static final int TONE_SAMPLES = SAMPLE_RATE * TONE_DURATION_MS / 1000;
     private static final int GAP_SAMPLES = SAMPLE_RATE * GAP_DURATION_MS / 1000;
+    private static final int WINDOW_SAMPLES = SAMPLE_RATE * ANALYSIS_WINDOW_MS / 1000;
 
-    private static final int SYMBOL_DATA_0 = 0;
-    private static final int SYMBOL_DATA_1 = 1;
-    private static final int SYMBOL_DATA_2 = 2;
-    private static final int SYMBOL_DATA_3 = 3;
-    private static final int SYMBOL_START = 4;
-    private static final int SYMBOL_END = 5;
-    private static final int SYMBOL_NONE = -1;
-    private static final int SYMBOL_COUNT = 6;
-
-    private static final double[] CHANNEL_CENTERS = {17_000.0, 18_000.0, 19_000.0};
-    private static final double[] SYMBOL_OFFSETS = {-180.0, -60.0, 60.0, 180.0, -300.0, 300.0};
-
-    private static final double MIN_FFT_MAGNITUDE = 180.0;
-    private static final double MIN_DOMINANCE_RATIO = 1.45;
-    private static final int REQUIRED_STABLE_WINDOWS = 5;
+    private static final double MIN_DETECTED_AMPLITUDE = 90.0;
+    private static final double MIN_DOMINANCE_RATIO = 1.65;
+    private static final int REQUIRED_STABLE_WINDOWS = 3;
 
     private final Callback callback;
     private final ExecutorService transmitterExecutor =
@@ -1126,77 +388,55 @@ public final class UltrasonicModem implements AutoCloseable {
     private final ExecutorService receiverExecutor =
             Executors.newSingleThreadExecutor(r -> new Thread(r, "ultrasonic-rx"));
 
-    private final AtomicBoolean closed = new AtomicBoolean(false);
     private final AtomicBoolean transmitting = new AtomicBoolean(false);
     private final AtomicBoolean receiverRequested = new AtomicBoolean(false);
+    private final AtomicBoolean closed = new AtomicBoolean(false);
     private final AtomicInteger receiverGeneration = new AtomicInteger(0);
-    private final AtomicInteger channelIndex = new AtomicInteger(0);
 
+    private final FrequencyDetector detector = new FrequencyDetector();
     private final FrameDecoder decoder = new FrameDecoder();
-    private final FftFrequencyDetector detector = new FftFrequencyDetector();
+    private final short[][] cachedTones = new short[18][];
     private final short[] silence = new short[GAP_SAMPLES];
 
     private volatile AudioRecord audioRecord;
-    private volatile short[][] cachedTones;
     private volatile String lastReceivedMessage = "";
-    private volatile long lastReceivedAtMs;
+    private volatile long lastReceivedAtMs = 0L;
 
-    public UltrasonicModem(int initialChannelIndex, @NonNull Callback callback) {
-        validateChannel(initialChannelIndex);
+    public UltrasonicModem(@NonNull Callback callback) {
         this.callback = callback;
-        channelIndex.set(initialChannelIndex);
-        rebuildToneCache(initialChannelIndex);
-    }
-
-    public void setChannel(int newChannelIndex) {
-        validateChannel(newChannelIndex);
-        if (channelIndex.get() == newChannelIndex) {
-            return;
-        }
-        boolean restart = receiverRequested.get();
-        stopReceiver();
-        channelIndex.set(newChannelIndex);
-        decoder.reset();
-        rebuildToneCache(newChannelIndex);
-        if (restart && !closed.get()) {
-            startReceiver();
-        }
-    }
-
-    public boolean isTransmitting() {
-        return transmitting.get();
+        cacheToneSamples();
     }
 
     public boolean send(@NonNull String text) {
         if (closed.get()) {
             return false;
         }
+
         byte[] payload = text.getBytes(StandardCharsets.UTF_8);
         if (payload.length == 0 || payload.length > MAX_PAYLOAD_BYTES) {
             return false;
         }
+
         if (!transmitting.compareAndSet(false, true)) {
             return false;
         }
 
-        int channelSnapshot = channelIndex.get();
-        short[][] tonesSnapshot = cachedTones;
         transmitterExecutor.execute(() -> {
             callback.onTransmissionStateChanged(true);
             decoder.reset();
+
             try {
-                transmitFrame(payload, tonesSnapshot);
+                transmitFrame(payload);
             } catch (Exception exception) {
                 callback.onError("Błąd nadawania: " + safeMessage(exception));
             } finally {
-                sleepQuietly(350);
-                if (channelIndex.get() == channelSnapshot) {
-                    decoder.reset();
-                }
+                sleepQuietly(450);
+                decoder.reset();
                 transmitting.set(false);
                 callback.onTransmissionStateChanged(false);
             }
         });
+
         return true;
     }
 
@@ -1204,32 +444,43 @@ public final class UltrasonicModem implements AutoCloseable {
         if (closed.get() || !receiverRequested.compareAndSet(false, true)) {
             return;
         }
+
         int generation = receiverGeneration.incrementAndGet();
         receiverExecutor.execute(() -> receiverLoop(generation));
     }
 
     public void stopReceiver() {
-        receiverRequested.set(false);
+        if (!receiverRequested.getAndSet(false)) {
+            return;
+        }
+
         receiverGeneration.incrementAndGet();
         AudioRecord record = audioRecord;
         if (record != null) {
             try {
                 record.stop();
             } catch (IllegalStateException ignored) {
-                // Pętla odbiornika mogła zakończyć nagrywanie wcześniej.
+                // Rekorder mógł już zostać zatrzymany przez pętlę odbiornika.
             }
         }
     }
 
-    private void transmitFrame(byte[] payload, short[][] tones) {
+    public boolean isTransmitting() {
+        return transmitting.get();
+    }
+
+    private void transmitFrame(byte[] payload) {
         int minBuffer = AudioTrack.getMinBufferSize(
                 SAMPLE_RATE,
                 AudioFormat.CHANNEL_OUT_MONO,
                 AudioFormat.ENCODING_PCM_16BIT
         );
+
         if (minBuffer <= 0) {
             throw new IllegalStateException("AudioTrack nie zwrócił poprawnego bufora");
         }
+
+        int bufferSize = Math.max(minBuffer, TONE_SAMPLES * 2);
 
         AudioTrack track = new AudioTrack.Builder()
                 .setAudioAttributes(new AudioAttributes.Builder()
@@ -1242,7 +493,7 @@ public final class UltrasonicModem implements AutoCloseable {
                         .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
                         .build())
                 .setTransferMode(AudioTrack.MODE_STREAM)
-                .setBufferSizeInBytes(Math.max(minBuffer, TONE_SAMPLES * 2))
+                .setBufferSizeInBytes(bufferSize)
                 .build();
 
         if (track.getState() != AudioTrack.STATE_INITIALIZED) {
@@ -1251,48 +502,52 @@ public final class UltrasonicModem implements AutoCloseable {
         }
 
         try {
-            track.setVolume(0.82f);
+            track.setVolume(0.85f);
             track.play();
-            writeSymbol(track, tones, SYMBOL_START);
-            writeSymbol(track, tones, SYMBOL_START);
-            writeSymbol(track, tones, SYMBOL_START);
 
-            writeByte(track, tones, (payload.length >>> 8) & 0xFF);
-            writeByte(track, tones, payload.length & 0xFF);
+            writeSymbol(track, START_SYMBOL);
+            writeSymbol(track, START_SYMBOL);
+            writeSymbol(track, START_SYMBOL);
+
+            writeByte(track, payload.length);
             for (byte value : payload) {
-                writeByte(track, tones, value & 0xFF);
+                writeByte(track, value & 0xFF);
             }
-            writeByte(track, tones, crc8(payload));
 
-            writeSymbol(track, tones, SYMBOL_END);
-            writeSymbol(track, tones, SYMBOL_END);
+            writeByte(track, crc8(payload));
+            writeSymbol(track, END_SYMBOL);
+            writeSymbol(track, END_SYMBOL);
         } finally {
             try {
                 track.stop();
             } catch (IllegalStateException ignored) {
-                // Zasób i tak zostanie zwolniony.
+                // Ignorujemy, bo zasób i tak jest zwalniany.
             }
             track.flush();
             track.release();
         }
     }
 
-    private void writeByte(AudioTrack track, short[][] tones, int unsignedByte) {
-        writeSymbol(track, tones, (unsignedByte >>> 6) & 0x03);
-        writeSymbol(track, tones, (unsignedByte >>> 4) & 0x03);
-        writeSymbol(track, tones, (unsignedByte >>> 2) & 0x03);
-        writeSymbol(track, tones, unsignedByte & 0x03);
+    private void writeByte(AudioTrack track, int unsignedByte) {
+        writeSymbol(track, (unsignedByte >>> 4) & 0x0F);
+        writeSymbol(track, unsignedByte & 0x0F);
     }
 
-    private void writeSymbol(AudioTrack track, short[][] tones, int symbol) {
-        writeFully(track, tones[symbol]);
+    private void writeSymbol(AudioTrack track, int symbol) {
+        writeFully(track, cachedTones[symbol]);
         writeFully(track, silence);
     }
 
     private static void writeFully(AudioTrack track, short[] samples) {
         int offset = 0;
         while (offset < samples.length) {
-            int written = track.write(samples, offset, samples.length - offset, AudioTrack.WRITE_BLOCKING);
+            int written = track.write(
+                    samples,
+                    offset,
+                    samples.length - offset,
+                    AudioTrack.WRITE_BLOCKING
+            );
+
             if (written < 0) {
                 throw new IllegalStateException("AudioTrack.write(): " + written);
             }
@@ -1300,62 +555,72 @@ public final class UltrasonicModem implements AutoCloseable {
         }
     }
 
-    @SuppressLint("MissingPermission")
     private void receiverLoop(int generation) {
         Process.setThreadPriority(Process.THREAD_PRIORITY_AUDIO);
         AudioRecord record = null;
-        int localChannel = channelIndex.get();
+
+        if (!receiverRequested.get()
+                || generation != receiverGeneration.get()
+                || closed.get()) {
+            return;
+        }
 
         try {
-            if (!receiverRequested.get() || generation != receiverGeneration.get() || closed.get()) {
-                return;
-            }
             record = createAudioRecord();
             audioRecord = record;
             record.startRecording();
             callback.onReceiverStateChanged(true);
 
-            short[] window = new short[FFT_SIZE];
+            short[] window = new short[WINDOW_SAMPLES];
             SymbolDebouncer debouncer = new SymbolDebouncer(decoder);
 
             while (receiverRequested.get()
                     && generation == receiverGeneration.get()
-                    && channelIndex.get() == localChannel
                     && !closed.get()) {
                 int read;
                 try {
                     read = record.read(window, 0, window.length, AudioRecord.READ_BLOCKING);
                 } catch (IllegalStateException exception) {
-                    if (receiverRequested.get() && generation == receiverGeneration.get()) {
+                    if (receiverRequested.get()
+                            && generation == receiverGeneration.get()) {
                         throw exception;
                     }
                     break;
                 }
 
                 if (read <= 0) {
+                    if (receiverRequested.get()
+                            && generation == receiverGeneration.get()) {
+                        callback.onError("AudioRecord.read(): " + read);
+                    }
                     continue;
                 }
+
                 if (transmitting.get()) {
                     debouncer.reset();
                     decoder.reset();
                     continue;
                 }
 
-                int symbol = detector.detect(window, read, localChannel);
+                int symbol = detector.detect(window, read);
                 debouncer.accept(symbol);
             }
         } catch (SecurityException exception) {
-            if (!closed.get()) {
+            if (generation == receiverGeneration.get() && !closed.get()) {
                 callback.onError("Brak uprawnienia do mikrofonu");
             }
         } catch (Exception exception) {
-            if (receiverRequested.get() && generation == receiverGeneration.get() && !closed.get()) {
+            if (receiverRequested.get()
+                    && generation == receiverGeneration.get()
+                    && !closed.get()) {
                 callback.onError("Błąd odbiornika: " + safeMessage(exception));
             }
         } finally {
-            if (audioRecord == record) {
-                audioRecord = null;
+            if (generation == receiverGeneration.get()) {
+                receiverRequested.set(false);
             }
+            audioRecord = null;
+
             if (record != null) {
                 try {
                     if (record.getRecordingState() == AudioRecord.RECORDSTATE_RECORDING) {
@@ -1366,24 +631,25 @@ public final class UltrasonicModem implements AutoCloseable {
                 }
                 record.release();
             }
+
             if (generation == receiverGeneration.get()) {
-                receiverRequested.set(false);
                 callback.onReceiverStateChanged(false);
             }
         }
     }
 
-    @SuppressLint("MissingPermission")
     private static AudioRecord createAudioRecord() {
         int minBuffer = AudioRecord.getMinBufferSize(
                 SAMPLE_RATE,
                 AudioFormat.CHANNEL_IN_MONO,
                 AudioFormat.ENCODING_PCM_16BIT
         );
+
         if (minBuffer <= 0) {
             throw new IllegalStateException("AudioRecord nie zwrócił poprawnego bufora");
         }
-        int bufferBytes = Math.max(minBuffer, FFT_SIZE * 2 * 6);
+
+        int bufferBytes = Math.max(minBuffer, WINDOW_SAMPLES * 2 * 4);
 
         try {
             AudioRecord unprocessed = new AudioRecord.Builder()
@@ -1395,6 +661,7 @@ public final class UltrasonicModem implements AutoCloseable {
                             .build())
                     .setBufferSizeInBytes(bufferBytes)
                     .build();
+
             if (unprocessed.getState() == AudioRecord.STATE_INITIALIZED) {
                 return unprocessed;
             }
@@ -1412,25 +679,26 @@ public final class UltrasonicModem implements AutoCloseable {
                         .build())
                 .setBufferSizeInBytes(bufferBytes)
                 .build();
+
         if (fallback.getState() != AudioRecord.STATE_INITIALIZED) {
             fallback.release();
             throw new IllegalStateException("Nie udało się uruchomić AudioRecord");
         }
+
         return fallback;
     }
 
-    private synchronized void rebuildToneCache(int channel) {
-        short[][] tones = new short[SYMBOL_COUNT][];
-        for (int symbol = 0; symbol < SYMBOL_COUNT; symbol++) {
-            tones[symbol] = generateTone(frequencyForSymbol(channel, symbol));
+    private void cacheToneSamples() {
+        for (int symbol = 0; symbol < cachedTones.length; symbol++) {
+            cachedTones[symbol] = generateTone(frequencyForSymbol(symbol));
         }
-        cachedTones = tones;
     }
 
     private static short[] generateTone(double frequency) {
         short[] samples = new short[TONE_SAMPLES];
-        int fadeSamples = SAMPLE_RATE / 100;
+        int fadeSamples = SAMPLE_RATE / 100; // 10 ms
         double amplitude = Short.MAX_VALUE * 0.68;
+
         for (int i = 0; i < samples.length; i++) {
             double envelope = 1.0;
             if (i < fadeSamples) {
@@ -1438,34 +706,37 @@ public final class UltrasonicModem implements AutoCloseable {
             } else if (i >= samples.length - fadeSamples) {
                 envelope = (samples.length - 1 - i) / (double) fadeSamples;
             }
+
             double phase = 2.0 * Math.PI * frequency * i / SAMPLE_RATE;
             samples[i] = (short) Math.round(Math.sin(phase) * amplitude * envelope);
         }
+
         return samples;
     }
 
-    private static double frequencyForSymbol(int channel, int symbol) {
-        validateChannel(channel);
-        if (symbol < 0 || symbol >= SYMBOL_COUNT) {
-            throw new IllegalArgumentException("Nieznany symbol: " + symbol);
+    private static double frequencyForSymbol(int symbol) {
+        if (symbol >= 0 && symbol <= 15) {
+            return DATA_BASE_FREQUENCY + symbol * DATA_STEP_FREQUENCY;
         }
-        return CHANNEL_CENTERS[channel] + SYMBOL_OFFSETS[symbol];
-    }
-
-    private static void validateChannel(int channel) {
-        if (channel < 0 || channel >= CHANNEL_CENTERS.length) {
-            throw new IllegalArgumentException("Nieznany kanał: " + channel);
+        if (symbol == START_SYMBOL) {
+            return START_FREQUENCY;
         }
+        if (symbol == END_SYMBOL) {
+            return END_FREQUENCY;
+        }
+        throw new IllegalArgumentException("Nieznany symbol: " + symbol);
     }
 
     private static int crc8(byte[] data) {
-        int crc = 0;
+        int crc = 0x00;
         for (byte value : data) {
             crc ^= value & 0xFF;
             for (int bit = 0; bit < 8; bit++) {
-                crc = (crc & 0x80) != 0
-                        ? ((crc << 1) ^ 0x07) & 0xFF
-                        : (crc << 1) & 0xFF;
+                if ((crc & 0x80) != 0) {
+                    crc = ((crc << 1) ^ 0x07) & 0xFF;
+                } else {
+                    crc = (crc << 1) & 0xFF;
+                }
             }
         }
         return crc;
@@ -1473,95 +744,82 @@ public final class UltrasonicModem implements AutoCloseable {
 
     private void deliverDecodedMessage(String message) {
         long now = System.currentTimeMillis();
-        if (message.equals(lastReceivedMessage) && now - lastReceivedAtMs < 2_500L) {
+        if (message.equals(lastReceivedMessage) && now - lastReceivedAtMs < 2_000L) {
             return;
         }
+
         lastReceivedMessage = message;
         lastReceivedAtMs = now;
         callback.onMessageReceived(message);
     }
 
     private final class FrameDecoder {
-        private static final int WAIT_START = 0;
-        private static final int READ_FRAME = 1;
-        private static final int WAIT_END = 2;
+        private static final int WAITING_FOR_START = 0;
+        private static final int READING_DATA = 1;
+        private static final int WAITING_FOR_END = 2;
 
-        private int state = WAIT_START;
-        private int startCount;
-        private int endCount;
-        private int assembledByte;
-        private int symbolsInByte;
-        private int lengthBytesRead;
+        private int state = WAITING_FOR_START;
+        private int startCount = 0;
+        private int endCount = 0;
+        private int pendingHighNibble = -1;
         private int expectedPayloadLength = -1;
         private final ByteArrayOutputStream frameBytes = new ByteArrayOutputStream();
 
         synchronized void acceptSymbol(int symbol) {
             switch (state) {
-                case WAIT_START -> acceptStart(symbol);
-                case READ_FRAME -> acceptFrameSymbol(symbol);
-                case WAIT_END -> acceptEnd(symbol);
+                case WAITING_FOR_START -> acceptStart(symbol);
+                case READING_DATA -> acceptData(symbol);
+                case WAITING_FOR_END -> acceptEnd(symbol);
                 default -> reset();
             }
         }
 
         private void acceptStart(int symbol) {
-            if (symbol == SYMBOL_START) {
+            if (symbol == START_SYMBOL) {
                 startCount++;
                 if (startCount >= 3) {
-                    beginFrame();
+                    state = READING_DATA;
+                    startCount = 0;
+                    pendingHighNibble = -1;
+                    expectedPayloadLength = -1;
+                    frameBytes.reset();
                 }
             } else {
                 startCount = 0;
             }
         }
 
-        private void beginFrame() {
-            state = READ_FRAME;
-            startCount = 0;
-            endCount = 0;
-            assembledByte = 0;
-            symbolsInByte = 0;
-            lengthBytesRead = 0;
-            expectedPayloadLength = -1;
-            frameBytes.reset();
-        }
-
-        private void acceptFrameSymbol(int symbol) {
-            if (symbol < SYMBOL_DATA_0 || symbol > SYMBOL_DATA_3) {
-                reset();
-                if (symbol == SYMBOL_START) {
+        private void acceptData(int symbol) {
+            if (symbol < 0 || symbol > 15) {
+                if (symbol == START_SYMBOL) {
+                    reset();
                     startCount = 1;
-                }
-                return;
-            }
-
-            assembledByte = (assembledByte << 2) | symbol;
-            symbolsInByte++;
-            if (symbolsInByte < 4) {
-                return;
-            }
-
-            int value = assembledByte & 0xFF;
-            assembledByte = 0;
-            symbolsInByte = 0;
-
-            if (lengthBytesRead < 2) {
-                if (lengthBytesRead == 0) {
-                    expectedPayloadLength = value << 8;
                 } else {
-                    expectedPayloadLength |= value;
-                    if (expectedPayloadLength <= 0 || expectedPayloadLength > MAX_PAYLOAD_BYTES) {
-                        reset();
-                        return;
-                    }
+                    reset();
                 }
-                lengthBytesRead++;
+                return;
+            }
+
+            if (pendingHighNibble < 0) {
+                pendingHighNibble = symbol;
+                return;
+            }
+
+            int value = (pendingHighNibble << 4) | symbol;
+            pendingHighNibble = -1;
+
+            if (expectedPayloadLength < 0) {
+                if (value <= 0 || value > MAX_PAYLOAD_BYTES) {
+                    reset();
+                    return;
+                }
+                expectedPayloadLength = value;
                 return;
             }
 
             frameBytes.write(value);
             if (frameBytes.size() == expectedPayloadLength + 1) {
-                state = WAIT_END;
+                state = WAITING_FOR_END;
                 endCount = 0;
             } else if (frameBytes.size() > expectedPayloadLength + 1) {
                 reset();
@@ -1569,42 +827,48 @@ public final class UltrasonicModem implements AutoCloseable {
         }
 
         private void acceptEnd(int symbol) {
-            if (symbol != SYMBOL_END) {
+            if (symbol != END_SYMBOL) {
                 reset();
                 return;
             }
+
             endCount++;
             if (endCount < 2) {
                 return;
             }
 
-            byte[] frame = frameBytes.toByteArray();
-            if (frame.length == expectedPayloadLength + 1) {
-                byte[] payload = Arrays.copyOf(frame, expectedPayloadLength);
-                int receivedCrc = frame[frame.length - 1] & 0xFF;
-                if (receivedCrc == crc8(payload)) {
-                    try {
-                        String decoded = StandardCharsets.UTF_8.newDecoder()
-                                .onMalformedInput(CodingErrorAction.REPORT)
-                                .onUnmappableCharacter(CodingErrorAction.REPORT)
-                                .decode(ByteBuffer.wrap(payload))
-                                .toString();
-                        deliverDecodedMessage(decoded);
-                    } catch (CharacterCodingException exception) {
-                        callback.onError("Odebrano niepoprawny tekst UTF-8");
-                    }
+            byte[] bytes = frameBytes.toByteArray();
+            if (bytes.length != expectedPayloadLength + 1) {
+                reset();
+                return;
+            }
+
+            byte[] payload = Arrays.copyOf(bytes, expectedPayloadLength);
+            int receivedCrc = bytes[bytes.length - 1] & 0xFF;
+            int calculatedCrc = crc8(payload);
+
+            if (receivedCrc == calculatedCrc) {
+                try {
+                    String message = StandardCharsets.UTF_8
+                            .newDecoder()
+                            .onMalformedInput(CodingErrorAction.REPORT)
+                            .onUnmappableCharacter(CodingErrorAction.REPORT)
+                            .decode(ByteBuffer.wrap(payload))
+                            .toString();
+                    deliverDecodedMessage(message);
+                } catch (CharacterCodingException ignored) {
+                    callback.onError("Odebrano ramkę z niepoprawnym UTF-8");
                 }
             }
+
             reset();
         }
 
         synchronized void reset() {
-            state = WAIT_START;
+            state = WAITING_FOR_START;
             startCount = 0;
             endCount = 0;
-            assembledByte = 0;
-            symbolsInByte = 0;
-            lengthBytesRead = 0;
+            pendingHighNibble = -1;
             expectedPayloadLength = -1;
             frameBytes.reset();
         }
@@ -1613,8 +877,8 @@ public final class UltrasonicModem implements AutoCloseable {
     private static final class SymbolDebouncer {
         private final FrameDecoder decoder;
         private int candidate = SYMBOL_NONE;
-        private int stableWindows;
-        private boolean emitted;
+        private int stableWindows = 0;
+        private boolean emitted = false;
 
         SymbolDebouncer(FrameDecoder decoder) {
             this.decoder = decoder;
@@ -1625,12 +889,14 @@ public final class UltrasonicModem implements AutoCloseable {
                 reset();
                 return;
             }
-            if (candidate != symbol) {
+
+            if (symbol != candidate) {
                 candidate = symbol;
                 stableWindows = 1;
                 emitted = false;
                 return;
             }
+
             stableWindows++;
             if (!emitted && stableWindows >= REQUIRED_STABLE_WINDOWS) {
                 emitted = true;
@@ -1645,104 +911,66 @@ public final class UltrasonicModem implements AutoCloseable {
         }
     }
 
-    private static final class FftFrequencyDetector {
-        private final double[] real = new double[FFT_SIZE];
-        private final double[] imaginary = new double[FFT_SIZE];
-        private final double[] hann = new double[FFT_SIZE];
+    private static final class FrequencyDetector {
+        private final double[] frequencies = new double[18];
 
-        FftFrequencyDetector() {
-            for (int i = 0; i < FFT_SIZE; i++) {
-                hann[i] = 0.5 - 0.5 * Math.cos(2.0 * Math.PI * i / (FFT_SIZE - 1));
+        FrequencyDetector() {
+            for (int symbol = 0; symbol <= 15; symbol++) {
+                frequencies[symbol] = frequencyForSymbol(symbol);
             }
+            frequencies[START_SYMBOL] = START_FREQUENCY;
+            frequencies[END_SYMBOL] = END_FREQUENCY;
         }
 
-        synchronized int detect(short[] samples, int length, int channel) {
-            Arrays.fill(real, 0.0);
-            Arrays.fill(imaginary, 0.0);
-            int usable = Math.min(length, FFT_SIZE);
-            for (int i = 0; i < usable; i++) {
-                real[i] = samples[i] * hann[i];
-            }
-            fft(real, imaginary);
-
-            double best = 0.0;
-            double second = 0.0;
+        int detect(short[] samples, int length) {
+            double bestAmplitude = 0.0;
+            double secondAmplitude = 0.0;
             int bestSymbol = SYMBOL_NONE;
-            for (int symbol = 0; symbol < SYMBOL_COUNT; symbol++) {
-                double magnitude = magnitudeNear(frequencyForSymbol(channel, symbol));
-                if (magnitude > best) {
-                    second = best;
-                    best = magnitude;
+
+            for (int symbol = 0; symbol < frequencies.length; symbol++) {
+                double amplitude = goertzelAmplitude(samples, length, frequencies[symbol]);
+                if (amplitude > bestAmplitude) {
+                    secondAmplitude = bestAmplitude;
+                    bestAmplitude = amplitude;
                     bestSymbol = symbol;
-                } else if (magnitude > second) {
-                    second = magnitude;
+                } else if (amplitude > secondAmplitude) {
+                    secondAmplitude = amplitude;
                 }
             }
 
-            double normalized = best / FFT_SIZE;
-            double dominance = second <= 0.001 ? Double.POSITIVE_INFINITY : best / second;
-            if (normalized < MIN_FFT_MAGNITUDE || dominance < MIN_DOMINANCE_RATIO) {
+            double dominance = secondAmplitude <= 0.0001
+                    ? Double.POSITIVE_INFINITY
+                    : bestAmplitude / secondAmplitude;
+
+            if (bestAmplitude < MIN_DETECTED_AMPLITUDE
+                    || dominance < MIN_DOMINANCE_RATIO) {
                 return SYMBOL_NONE;
             }
+
             return bestSymbol;
         }
 
-        private double magnitudeNear(double frequency) {
-            int centerBin = (int) Math.round(frequency * FFT_SIZE / SAMPLE_RATE);
-            double best = 0.0;
-            for (int bin = Math.max(1, centerBin - 2); bin <= Math.min(FFT_SIZE / 2 - 1, centerBin + 2); bin++) {
-                double magnitude = Math.hypot(real[bin], imaginary[bin]);
-                if (magnitude > best) {
-                    best = magnitude;
-                }
-            }
-            return best;
-        }
+        private static double goertzelAmplitude(
+                short[] samples,
+                int length,
+                double frequency
+        ) {
+            double omega = 2.0 * Math.PI * frequency / SAMPLE_RATE;
+            double coefficient = 2.0 * Math.cos(omega);
+            double previous = 0.0;
+            double previous2 = 0.0;
 
-        private static void fft(double[] real, double[] imaginary) {
-            int n = real.length;
-            int j = 0;
-            for (int i = 1; i < n; i++) {
-                int bit = n >> 1;
-                while ((j & bit) != 0) {
-                    j ^= bit;
-                    bit >>= 1;
-                }
-                j ^= bit;
-                if (i < j) {
-                    double tempReal = real[i];
-                    real[i] = real[j];
-                    real[j] = tempReal;
-                    double tempImaginary = imaginary[i];
-                    imaginary[i] = imaginary[j];
-                    imaginary[j] = tempImaginary;
-                }
+            for (int i = 0; i < length; i++) {
+                double current = samples[i] + coefficient * previous - previous2;
+                previous2 = previous;
+                previous = current;
             }
 
-            for (int length = 2; length <= n; length <<= 1) {
-                double angle = -2.0 * Math.PI / length;
-                double wLengthReal = Math.cos(angle);
-                double wLengthImaginary = Math.sin(angle);
-                for (int start = 0; start < n; start += length) {
-                    double wReal = 1.0;
-                    double wImaginary = 0.0;
-                    for (int offset = 0; offset < length / 2; offset++) {
-                        int even = start + offset;
-                        int odd = even + length / 2;
-                        double oddReal = real[odd] * wReal - imaginary[odd] * wImaginary;
-                        double oddImaginary = real[odd] * wImaginary + imaginary[odd] * wReal;
+            double power = previous2 * previous2
+                    + previous * previous
+                    - coefficient * previous * previous2;
 
-                        real[odd] = real[even] - oddReal;
-                        imaginary[odd] = imaginary[even] - oddImaginary;
-                        real[even] += oddReal;
-                        imaginary[even] += oddImaginary;
-
-                        double nextWReal = wReal * wLengthReal - wImaginary * wLengthImaginary;
-                        wImaginary = wReal * wLengthImaginary + wImaginary * wLengthReal;
-                        wReal = nextWReal;
-                    }
-                }
-            }
+            return 2.0 * Math.sqrt(Math.max(power, 0.0)) / length;
         }
     }
 
@@ -1766,9 +994,11 @@ public final class UltrasonicModem implements AutoCloseable {
         if (!closed.compareAndSet(false, true)) {
             return;
         }
+
         stopReceiver();
         transmitterExecutor.shutdownNow();
         receiverExecutor.shutdownNow();
+
         try {
             transmitterExecutor.awaitTermination(500, TimeUnit.MILLISECONDS);
             receiverExecutor.awaitTermination(500, TimeUnit.MILLISECONDS);
@@ -1777,287 +1007,464 @@ public final class UltrasonicModem implements AutoCloseable {
         }
     }
 }
-
 ```
 
-## `app/src/main/res/drawable/avatar_circle.xml`
+## `app/src/main/java/com/przyklad/soundboard/MainActivity.java`
+
+```java
+package com.przyklad.soundboard;
+
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
+import android.os.Bundle;
+import android.view.View;
+import android.view.inputmethod.EditorInfo;
+import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.TextView;
+
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.android.material.snackbar.Snackbar;
+
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+
+public final class MainActivity extends AppCompatActivity {
+
+    private static final String STATE_TEXTS = "chat_texts";
+    private static final String STATE_SENT_FLAGS = "chat_sent_flags";
+
+    private RecyclerView messagesList;
+    private EditText messageInput;
+    private ImageButton sendButton;
+    private TextView statusText;
+    private View statusDot;
+    private TextView emptyText;
+
+    private MessageAdapter adapter;
+    private UltrasonicModem modem;
+    private boolean receiverActive = false;
+
+    private final ActivityResultLauncher<String> microphonePermissionLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.RequestPermission(),
+                    granted -> {
+                        if (granted) {
+                            startReceiverIfAllowed();
+                        } else {
+                            setStatus(
+                                    "Brak mikrofonu • odbiór wyłączony",
+                                    R.color.status_red
+                            );
+                            Snackbar.make(
+                                    messageInput,
+                                    "Możesz nadawać, ale odbiór wymaga mikrofonu.",
+                                    Snackbar.LENGTH_LONG
+                            ).show();
+                        }
+                    }
+            );
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        setContentView(R.layout.activity_main);
+
+        bindViews();
+        configureInsets();
+        configureMessages(savedInstanceState);
+        configureComposer();
+        createModem();
+        requestMicrophonePermissionIfNeeded();
+    }
+
+    private void bindViews() {
+        messagesList = findViewById(R.id.messagesList);
+        messageInput = findViewById(R.id.messageInput);
+        sendButton = findViewById(R.id.sendButton);
+        statusText = findViewById(R.id.statusText);
+        statusDot = findViewById(R.id.statusDot);
+        emptyText = findViewById(R.id.emptyText);
+    }
+
+    private void configureInsets() {
+        View root = findViewById(R.id.rootContainer);
+        int initialLeft = root.getPaddingLeft();
+        int initialTop = root.getPaddingTop();
+        int initialRight = root.getPaddingRight();
+        int initialBottom = root.getPaddingBottom();
+
+        ViewCompat.setOnApplyWindowInsetsListener(root, (view, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
+            int bottom = Math.max(systemBars.bottom, ime.bottom);
+
+            view.setPadding(
+                    initialLeft + systemBars.left,
+                    initialTop + systemBars.top,
+                    initialRight + systemBars.right,
+                    initialBottom + bottom
+            );
+            return insets;
+        });
+    }
+
+    private void configureMessages(Bundle savedInstanceState) {
+        adapter = new MessageAdapter();
+
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+        layoutManager.setStackFromEnd(true);
+        messagesList.setLayoutManager(layoutManager);
+        messagesList.setAdapter(adapter);
+
+        adapter.registerAdapterDataObserver(new RecyclerView.AdapterDataObserver() {
+            @Override
+            public void onChanged() {
+                updateEmptyState();
+            }
+
+            @Override
+            public void onItemRangeInserted(int positionStart, int itemCount) {
+                updateEmptyState();
+                scrollToLastMessage();
+            }
+        });
+
+        restoreMessages(savedInstanceState);
+        updateEmptyState();
+    }
+
+    private void restoreMessages(Bundle state) {
+        if (state == null) {
+            return;
+        }
+
+        ArrayList<String> texts = state.getStringArrayList(STATE_TEXTS);
+        boolean[] sentFlags = state.getBooleanArray(STATE_SENT_FLAGS);
+        if (texts == null || sentFlags == null || texts.size() != sentFlags.length) {
+            return;
+        }
+
+        List<ChatMessage> restored = new ArrayList<>();
+        for (int i = 0; i < texts.size(); i++) {
+            restored.add(new ChatMessage(texts.get(i), sentFlags[i]));
+        }
+        adapter.replaceMessages(restored);
+    }
+
+    private void configureComposer() {
+        sendButton.setOnClickListener(view -> sendCurrentMessage());
+
+        messageInput.setOnEditorActionListener((view, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_SEND) {
+                sendCurrentMessage();
+                return true;
+            }
+            return false;
+        });
+    }
+
+    private void createModem() {
+        modem = new UltrasonicModem(new UltrasonicModem.Callback() {
+            @Override
+            public void onReceiverStateChanged(boolean active) {
+                runOnUiThread(() -> {
+                    receiverActive = active;
+                    if (modem == null || !modem.isTransmitting()) {
+                        if (active) {
+                            setStatus("Nasłuchiwanie • 18–20 kHz", R.color.status_green);
+                        } else if (hasMicrophonePermission()) {
+                            setStatus("Odbiornik zatrzymany", R.color.status_yellow);
+                        }
+                    }
+                });
+            }
+
+            @Override
+            public void onTransmissionStateChanged(boolean active) {
+                runOnUiThread(() -> {
+                    sendButton.setEnabled(!active);
+                    sendButton.setAlpha(active ? 0.55f : 1.0f);
+
+                    if (active) {
+                        setStatus("Nadawanie wiadomości…", R.color.primary);
+                    } else if (receiverActive) {
+                        setStatus("Nasłuchiwanie • 18–20 kHz", R.color.status_green);
+                    } else if (!hasMicrophonePermission()) {
+                        setStatus("Brak mikrofonu • odbiór wyłączony", R.color.status_red);
+                    }
+                });
+            }
+
+            @Override
+            public void onMessageReceived(@NonNull String message) {
+                runOnUiThread(() -> addMessage(message, false));
+            }
+
+            @Override
+            public void onError(@NonNull String message) {
+                runOnUiThread(() -> Snackbar.make(
+                        messageInput,
+                        message,
+                        Snackbar.LENGTH_LONG
+                ).show());
+            }
+        });
+    }
+
+    private void sendCurrentMessage() {
+        String text = messageInput.getText().toString().trim();
+        if (text.isEmpty()) {
+            return;
+        }
+
+        int byteLength = text.getBytes(StandardCharsets.UTF_8).length;
+        if (byteLength > UltrasonicModem.MAX_PAYLOAD_BYTES) {
+            Snackbar.make(
+                    messageInput,
+                    "Wiadomość ma " + byteLength + " bajtów. Limit to "
+                            + UltrasonicModem.MAX_PAYLOAD_BYTES + ".",
+                    Snackbar.LENGTH_LONG
+            ).show();
+            return;
+        }
+
+        if (modem == null || !modem.send(text)) {
+            Snackbar.make(
+                    messageInput,
+                    "Nadajnik jest zajęty. Poczekaj na zakończenie transmisji.",
+                    Snackbar.LENGTH_SHORT
+            ).show();
+            return;
+        }
+
+        addMessage(text, true);
+        messageInput.setText("");
+    }
+
+    private void addMessage(String text, boolean sentByMe) {
+        adapter.addMessage(new ChatMessage(text, sentByMe));
+    }
+
+    private void scrollToLastMessage() {
+        if (adapter.getItemCount() > 0) {
+            messagesList.post(() ->
+                    messagesList.smoothScrollToPosition(adapter.getItemCount() - 1));
+        }
+    }
+
+    private void updateEmptyState() {
+        emptyText.setVisibility(adapter.isEmpty() ? View.VISIBLE : View.GONE);
+    }
+
+    private void requestMicrophonePermissionIfNeeded() {
+        if (hasMicrophonePermission()) {
+            startReceiverIfAllowed();
+            return;
+        }
+
+        if (shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO)) {
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.microphone_permission_title)
+                    .setMessage(R.string.microphone_permission_message)
+                    .setNegativeButton("Nie teraz", (dialog, which) -> setStatus(
+                            "Brak mikrofonu • odbiór wyłączony",
+                            R.color.status_red
+                    ))
+                    .setPositiveButton("Zezwól", (dialog, which) ->
+                            microphonePermissionLauncher.launch(
+                                    Manifest.permission.RECORD_AUDIO))
+                    .show();
+        } else {
+            microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO);
+        }
+    }
+
+    private boolean hasMicrophonePermission() {
+        return ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void startReceiverIfAllowed() {
+        if (modem != null && hasMicrophonePermission()) {
+            modem.startReceiver();
+        }
+    }
+
+    private void setStatus(String text, int colorRes) {
+        statusText.setText(text);
+        int color = ContextCompat.getColor(this, colorRes);
+        ViewCompat.setBackgroundTintList(statusDot, ColorStateList.valueOf(color));
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        startReceiverIfAllowed();
+    }
+
+    @Override
+    protected void onStop() {
+        if (modem != null) {
+            modem.stopReceiver();
+        }
+        super.onStop();
+    }
+
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+
+        List<ChatMessage> snapshot = adapter.snapshot();
+        ArrayList<String> texts = new ArrayList<>(snapshot.size());
+        boolean[] sentFlags = new boolean[snapshot.size()];
+
+        for (int i = 0; i < snapshot.size(); i++) {
+            ChatMessage message = snapshot.get(i);
+            texts.add(message.getText());
+            sentFlags[i] = message.isSentByMe();
+        }
+
+        outState.putStringArrayList(STATE_TEXTS, texts);
+        outState.putBooleanArray(STATE_SENT_FLAGS, sentFlags);
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (modem != null) {
+            modem.close();
+            modem = null;
+        }
+        super.onDestroy();
+    }
+}
+```
+
+## `app/src/main/res/layout/activity_main.xml`
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
-    <solid android:color="@color/primary_soft" />
-</shape>
-
-```
-
-## `app/src/main/res/drawable/channel_badge_background.xml`
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="@color/primary_soft" />
-    <corners android:radius="10dp" />
-    <padding android:left="7dp" android:top="3dp" android:right="7dp" android:bottom="3dp" />
-</shape>
-
-```
-
-## `app/src/main/res/drawable/ic_add.xml`
-
-```xml
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
-    <path android:fillColor="@color/white" android:pathData="M11,5h2v6h6v2h-6v6h-2v-6H5v-2h6z" />
-</vector>
-
-```
-
-## `app/src/main/res/drawable/ic_app.xml`
-
-```xml
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
-    <path android:fillColor="#FF635BFF" android:pathData="M0,0h108v108h-108z" />
-    <path android:fillColor="#FFFFFFFF" android:pathData="M20,54c7,-17 17,-26 30,-26 15,0 18,17 31,17 4,0 7,-2 10,-5v11c-3,2 -7,3 -11,3 -16,0 -19,-17 -31,-17 -8,0 -15,7 -21,20 -4,8 -5,15 -5,23H13c0,-9 2,-18 7,-26zM17,69c8,-15 17,-22 28,-22 15,0 18,17 31,17 6,0 11,-3 15,-8v12c-4,3 -9,5 -15,5 -16,0 -19,-17 -31,-17 -7,0 -13,5 -19,16 -2,4 -3,8 -4,12H12c1,-5 2,-10 5,-15z" />
-</vector>
-
-```
-
-## `app/src/main/res/drawable/ic_back.xml`
-
-```xml
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
-    <path android:fillColor="@color/text_primary" android:pathData="M20,11H7.83l5.59,-5.59L12,4l-8,8 8,8 1.42,-1.41L7.83,13H20z" />
-</vector>
-
-```
-
-## `app/src/main/res/drawable/ic_search.xml`
-
-```xml
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
-    <path android:fillColor="@color/text_primary" android:pathData="M9.5,3a6.5,6.5 0,1 0,3.98 11.64L19.85,21 21,19.85l-6.36,-6.37A6.5,6.5 0,0 0,9.5 3zM9.5,5a4.5,4.5 0,1 1,0 9,4.5 4.5,0 0,1 0,-9z" />
-</vector>
-
-```
-
-## `app/src/main/res/drawable/ic_send.xml`
-
-```xml
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
-    <path android:fillColor="@color/white" android:pathData="M3.4,20.4 22,12 3.4,3.6 3,10.1l13,1.9 -13,1.9z" />
-</vector>
-
-```
-
-## `app/src/main/res/drawable/input_background.xml`
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="@color/surface" />
-    <corners android:radius="28dp" />
-    <stroke android:width="1dp" android:color="@color/divider" />
-</shape>
-
-```
-
-## `app/src/main/res/drawable/receive_bubble.xml`
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="@color/received_bubble" />
-    <corners
-        android:topLeftRadius="6dp"
-        android:topRightRadius="20dp"
-        android:bottomLeftRadius="20dp"
-        android:bottomRightRadius="20dp" />
-    <padding android:left="14dp" android:top="10dp" android:right="14dp" android:bottom="8dp" />
-</shape>
-
-```
-
-## `app/src/main/res/drawable/send_bubble.xml`
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <gradient
-        android:angle="0"
-        android:startColor="#FF635BFF"
-        android:endColor="#FF7C55E9" />
-    <corners
-        android:topLeftRadius="20dp"
-        android:topRightRadius="6dp"
-        android:bottomLeftRadius="20dp"
-        android:bottomRightRadius="20dp" />
-    <padding android:left="14dp" android:top="10dp" android:right="14dp" android:bottom="8dp" />
-</shape>
-
-```
-
-## `app/src/main/res/drawable/spinner_background.xml`
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="@color/surface" />
-    <corners android:radius="14dp" />
-    <stroke android:width="1dp" android:color="@color/divider" />
-    <padding android:left="12dp" android:top="4dp" android:right="12dp" android:bottom="4dp" />
-</shape>
-
-```
-
-## `app/src/main/res/drawable/status_dot.xml`
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
-    <solid android:color="@color/online" />
-    <size android:width="8dp" android:height="8dp" />
-</shape>
-
-```
-
-## `app/src/main/res/layout/activity_chat.xml`
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/chatRoot"
+    android:id="@+id/rootContainer"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/chatTopBar"
+    <LinearLayout
+        android:id="@+id/headerContainer"
         android:layout_width="0dp"
-        android:layout_height="76dp"
-        android:background="@color/surface"
-        android:elevation="2dp"
-        android:paddingEnd="16dp"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="20dp"
+        android:paddingTop="18dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="14dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <ImageButton
-            android:id="@+id/backButton"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/back"
-            android:padding="12dp"
-            android:src="@drawable/ic_back"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+        <ImageView
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:contentDescription="@string/app_name"
+            android:src="@drawable/ic_app" />
 
-        <FrameLayout
-            android:id="@+id/chatAvatar"
-            android:layout_width="46dp"
-            android:layout_height="46dp"
-            android:background="@drawable/avatar_circle"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toEndOf="@id/backButton"
-            app:layout_constraintTop_toTopOf="parent">
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
 
             <TextView
-                android:id="@+id/avatarInitial"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center"
-                android:textColor="@color/primary"
-                android:textSize="18sp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/app_name"
+                android:textColor="@color/text_primary"
+                android:textSize="20sp"
                 android:textStyle="bold" />
 
-            <View
-                android:layout_width="11dp"
-                android:layout_height="11dp"
-                android:layout_gravity="end|bottom"
-                android:background="@drawable/status_dot" />
-        </FrameLayout>
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-        <TextView
-            android:id="@+id/nicknameText"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:textColor="@color/text_primary"
-            android:textSize="17sp"
-            android:textStyle="bold"
-            app:layout_constraintBottom_toTopOf="@id/statusText"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@id/chatAvatar"
-            app:layout_constraintTop_toTopOf="@id/chatAvatar"
-            app:layout_constraintVertical_chainStyle="packed" />
+                <View
+                    android:id="@+id/statusDot"
+                    android:layout_width="8dp"
+                    android:layout_height="8dp"
+                    android:background="@drawable/status_dot" />
 
-        <TextView
-            android:id="@+id/statusText"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:text="@string/microphone_off"
-            android:textColor="@color/text_secondary"
-            android:textSize="12sp"
-            app:layout_constraintBottom_toBottomOf="@id/chatAvatar"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@id/chatAvatar"
-            app:layout_constraintTop_toBottomOf="@id/nicknameText" />
+                <TextView
+                    android:id="@+id/statusText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="7dp"
+                    android:text="@string/subtitle_waiting"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <Spinner
-        android:id="@+id/channelSpinner"
-        android:layout_width="0dp"
-        android:layout_height="48dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="12dp"
-        android:layout_marginEnd="16dp"
-        android:background="@drawable/spinner_background"
-        android:entries="@array/channel_labels"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp"
-        android:spinnerMode="dropdown"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/chatTopBar" />
+    <TextView
+        android:id="@+id/emptyText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="@string/empty_chat"
+        android:textColor="@color/text_secondary"
+        android:textSize="15sp"
+        app:layout_constraintBottom_toBottomOf="@id/messagesList"
+        app:layout_constraintEnd_toEndOf="@id/messagesList"
+        app:layout_constraintStart_toStartOf="@id/messagesList"
+        app:layout_constraintTop_toTopOf="@id/messagesList" />
 
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/messagesRecyclerView"
+        android:id="@+id/messagesList"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:clipToPadding="false"
         android:overScrollMode="never"
-        android:paddingStart="12dp"
-        android:paddingTop="14dp"
-        android:paddingEnd="12dp"
-        android:paddingBottom="14dp"
-        app:layout_constraintBottom_toTopOf="@id/inputCard"
+        android:paddingTop="8dp"
+        android:paddingBottom="12dp"
+        app:layout_constraintBottom_toTopOf="@id/composerContainer"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/channelSpinner" />
+        app:layout_constraintTop_toBottomOf="@id/headerContainer" />
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/inputCard"
+    <LinearLayout
+        android:id="@+id/composerContainer"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="12dp"
         android:layout_marginEnd="12dp"
         android:layout_marginBottom="12dp"
-        android:background="@drawable/input_background"
-        android:elevation="3dp"
-        android:minHeight="58dp"
+        android:background="@drawable/input_container"
+        android:gravity="bottom|center_vertical"
+        android:orientation="horizontal"
         android:paddingStart="16dp"
         android:paddingTop="5dp"
         android:paddingEnd="5dp"
@@ -2070,279 +1477,163 @@ public final class UltrasonicModem implements AutoCloseable {
             android:id="@+id/messageInput"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:background="@null"
-            android:gravity="center_vertical"
             android:hint="@string/message_hint"
-            android:imeOptions="actionSend"
             android:inputType="textCapSentences|textMultiLine"
             android:maxLines="4"
             android:minHeight="48dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
+            android:paddingTop="12dp"
+            android:paddingEnd="10dp"
+            android:paddingBottom="12dp"
             android:textColor="@color/text_primary"
             android:textColorHint="@color/text_secondary"
-            android:textSize="16sp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/sendButton"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            android:textSize="16sp" />
 
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
+        <ImageButton
             android:id="@+id/sendButton"
             android:layout_width="48dp"
             android:layout_height="48dp"
+            android:background="@drawable/send_button_background"
             android:contentDescription="@string/send"
-            android:src="@drawable/ic_send"
-            app:backgroundTint="@color/primary"
-            app:elevation="0dp"
-            app:fabCustomSize="48dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:maxImageSize="22dp"
-            app:tint="@color/white" />
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-</androidx.constraintlayout.widget.ConstraintLayout>
-
-```
-
-## `app/src/main/res/layout/activity_main.xml`
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/mainRoot"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/background">
-
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/topBar"
-        android:layout_width="0dp"
-        android:layout_height="76dp"
-        android:background="@color/surface"
-        android:elevation="2dp"
-        android:paddingStart="20dp"
-        android:paddingEnd="12dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
-
-        <TextView
-            android:id="@+id/titleText"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:text="@string/app_name"
-            android:textColor="@color/text_primary"
-            android:textSize="23sp"
-            android:textStyle="bold"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/searchButton"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <ImageButton
-            android:id="@+id/searchButton"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/search"
             android:padding="12dp"
-            android:src="@drawable/ic_search"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/chatListRecyclerView"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:clipToPadding="false"
-        android:overScrollMode="never"
-        android:paddingTop="8dp"
-        android:paddingBottom="104dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/topBar" />
-
-    <TextView
-        android:id="@+id/emptyText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:maxWidth="260dp"
-        android:text="@string/no_conversations"
-        android:textColor="@color/text_secondary"
-        android:textSize="15sp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/topBar" />
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/newChatFab"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="22dp"
-        android:layout_marginBottom="24dp"
-        android:contentDescription="@string/new_chat"
-        android:src="@drawable/ic_add"
-        app:backgroundTint="@color/primary"
-        app:elevation="8dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:tint="@color/white" />
+            android:src="@drawable/ic_send" />
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
-
-```
-
-## `app/src/main/res/layout/item_chat_list.xml`
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/chatItemRoot"
-    android:layout_width="match_parent"
-    android:layout_height="84dp"
-    android:background="@color/surface"
-    android:clickable="true"
-    android:focusable="true"
-    android:foreground="?attr/selectableItemBackground"
-    android:paddingStart="16dp"
-    android:paddingEnd="16dp">
-
-    <FrameLayout
-        android:id="@+id/avatarContainer"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
-        android:background="@drawable/avatar_circle"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
-
-        <TextView
-            android:id="@+id/avatarInitial"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:textColor="@color/primary"
-            android:textSize="21sp"
-            android:textStyle="bold" />
-    </FrameLayout>
-
-    <TextView
-        android:id="@+id/nicknameText"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="14dp"
-        android:layout_marginEnd="8dp"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:textColor="@color/text_primary"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        app:layout_constraintBottom_toTopOf="@id/lastMessageText"
-        app:layout_constraintEnd_toStartOf="@id/timeText"
-        app:layout_constraintStart_toEndOf="@id/avatarContainer"
-        app:layout_constraintTop_toTopOf="@id/avatarContainer"
-        app:layout_constraintVertical_chainStyle="packed" />
-
-    <TextView
-        android:id="@+id/lastMessageText"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="14dp"
-        android:layout_marginTop="5dp"
-        android:layout_marginEnd="8dp"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:textColor="@color/text_secondary"
-        android:textSize="14sp"
-        app:layout_constraintBottom_toBottomOf="@id/avatarContainer"
-        app:layout_constraintEnd_toStartOf="@id/channelText"
-        app:layout_constraintStart_toEndOf="@id/avatarContainer"
-        app:layout_constraintTop_toBottomOf="@id/nicknameText" />
-
-    <TextView
-        android:id="@+id/timeText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textColor="@color/text_secondary"
-        android:textSize="12sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="@id/avatarContainer" />
-
-    <TextView
-        android:id="@+id/channelText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="@drawable/channel_badge_background"
-        android:textColor="@color/primary"
-        android:textSize="10sp"
-        android:textStyle="bold"
-        app:layout_constraintBottom_toBottomOf="@id/avatarContainer"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <View
-        android:layout_width="0dp"
-        android:layout_height="1dp"
-        android:background="@color/divider"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="@id/nicknameText" />
-
-</androidx.constraintlayout.widget.ConstraintLayout>
-
 ```
 
 ## `app/src/main/res/layout/item_message.xml`
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/messageRow"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:paddingTop="3dp"
-    android:paddingBottom="3dp">
+    android:paddingStart="12dp"
+    android:paddingTop="4dp"
+    android:paddingEnd="12dp"
+    android:paddingBottom="4dp">
 
-    <LinearLayout
-        android:id="@+id/bubbleContainer"
+    <TextView
+        android:id="@+id/messageText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:maxWidth="320dp"
+        android:paddingStart="14dp"
+        android:paddingTop="10dp"
+        android:paddingEnd="14dp"
+        android:paddingBottom="10dp"
+        android:textIsSelectable="true"
+        android:textSize="16sp" />
 
-        <TextView
-            android:id="@+id/messageText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:lineSpacingExtra="1dp"
-            android:maxWidth="300dp"
-            android:textSize="16sp" />
+</FrameLayout>
+```
 
-        <TextView
-            android:id="@+id/messageTime"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="end"
-            android:layout_marginTop="2dp"
-            android:textSize="10sp" />
+## `app/src/main/res/drawable/send_bubble.xml`
 
-    </LinearLayout>
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/primary" />
+    <corners
+        android:topLeftRadius="20dp"
+        android:topRightRadius="20dp"
+        android:bottomLeftRadius="20dp"
+        android:bottomRightRadius="6dp" />
+</shape>
+```
 
-</LinearLayout>
+## `app/src/main/res/drawable/receive_bubble.xml`
 
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/surface_soft" />
+    <stroke
+        android:width="1dp"
+        android:color="@color/surface_border" />
+    <corners
+        android:topLeftRadius="20dp"
+        android:topRightRadius="20dp"
+        android:bottomLeftRadius="6dp"
+        android:bottomRightRadius="20dp" />
+</shape>
+```
+
+## `app/src/main/res/drawable/input_container.xml`
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/surface" />
+    <stroke
+        android:width="1dp"
+        android:color="@color/surface_border" />
+    <corners android:radius="28dp" />
+</shape>
+```
+
+## `app/src/main/res/drawable/send_button_background.xml`
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_pressed="true">
+        <shape android:shape="oval">
+            <solid android:color="@color/primary_pressed" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="@color/primary" />
+        </shape>
+    </item>
+</selector>
+```
+
+## `app/src/main/res/drawable/status_dot.xml`
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="@color/status_green" />
+</shape>
+```
+
+## `app/src/main/res/drawable/ic_send.xml`
+
+```xml
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M2.01,21L23,12 2.01,3 2,10l15,2 -15,2z" />
+</vector>
+```
+
+## `app/src/main/res/drawable/ic_app.xml`
+
+```xml
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#746BFF"
+        android:pathData="M54,4A50,50 0,1 0,54 104A50,50 0,1 0,54 4" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M24,58h8v-8h-8zM38,66h8V42h-8zM52,76h8V32h-8zM66,66h8V42h-8zM80,58h8v-8h-8z" />
+</vector>
 ```
 
 ## `app/src/main/res/values/colors.xml`
@@ -2350,22 +1641,20 @@ public final class UltrasonicModem implements AutoCloseable {
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="white">#FFFFFFFF</color>
-    <color name="black">#FF111318</color>
-    <color name="background">#FFF7F8FC</color>
-    <color name="surface">#FFFFFFFF</color>
-    <color name="primary">#FF635BFF</color>
-    <color name="primary_dark">#FF4D45E6</color>
-    <color name="primary_soft">#FFE9E7FF</color>
-    <color name="text_primary">#FF15171C</color>
-    <color name="text_secondary">#FF777B87</color>
-    <color name="divider">#FFE8EAF0</color>
-    <color name="received_bubble">#FFEAECF2</color>
-    <color name="online">#FF35C46A</color>
-    <color name="danger">#FFE34B5F</color>
+    <color name="background">#121212</color>
+    <color name="surface">#1A1B1F</color>
+    <color name="surface_soft">#23252B</color>
+    <color name="surface_border">#30323A</color>
+    <color name="primary">#746BFF</color>
+    <color name="primary_pressed">#6258EA</color>
+    <color name="text_primary">#F7F7FA</color>
+    <color name="text_secondary">#A8AAB3</color>
+    <color name="received_text">#F1F1F4</color>
+    <color name="status_green">#5DD39E</color>
+    <color name="status_red">#FF6B6B</color>
+    <color name="status_yellow">#F6C85F</color>
     <color name="transparent">#00000000</color>
 </resources>
-
 ```
 
 ## `app/src/main/res/values/strings.xml`
@@ -2373,38 +1662,14 @@ public final class UltrasonicModem implements AutoCloseable {
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Ultrasonic Messenger</string>
-    <string name="search">Szukaj</string>
-    <string name="new_chat">Nowa wiadomość</string>
-    <string name="no_conversations">Brak rozmów. Naciśnij +, aby rozpocząć.</string>
-    <string name="online">Online</string>
-    <string name="listening">Nasłuchiwanie</string>
-    <string name="microphone_off">Mikrofon wyłączony</string>
-    <string name="transmitting">Nadawanie dźwiękiem…</string>
-    <string name="message_hint">Napisz wiadomość</string>
+    <string name="app_name">Ultrasonic Chat</string>
+    <string name="subtitle_waiting">Nasłuchiwanie • 18–20 kHz</string>
+    <string name="message_hint">Napisz wiadomość…</string>
     <string name="send">Wyślij</string>
-    <string name="back">Wstecz</string>
-    <string name="choose_channel">Kanał częstotliwości</string>
-    <string name="nickname">Nick rozmówcy</string>
-    <string name="create">Utwórz</string>
-    <string name="cancel">Anuluj</string>
-    <string name="permission_title">Dostęp do mikrofonu</string>
-    <string name="permission_message">Aplikacja potrzebuje mikrofonu, aby odbierać wiadomości zakodowane w wysokich częstotliwościach.</string>
-    <string name="permission_denied">Bez mikrofonu odbieranie wiadomości jest niemożliwe.</string>
-    <string name="invalid_nickname">Wpisz nick rozmówcy.</string>
-    <string name="message_too_long">Wiadomość jest za długa. Maksymalnie 240 bajtów UTF-8.</string>
-    <string name="busy">Modem nadaje już inną wiadomość.</string>
-    <string name="search_hint">Wpisz nick</string>
-    <string name="channel_badge">CH %1$d</string>
-    <string name="channel_status">Kanał %1$d • %2$s</string>
-
-    <string-array name="channel_labels">
-        <item>Kanał 1 • okolice 17 kHz</item>
-        <item>Kanał 2 • okolice 18 kHz</item>
-        <item>Kanał 3 • okolice 19 kHz</item>
-    </string-array>
+    <string name="empty_chat">Brak wiadomości\nWyślij tekst do drugiego telefonu.</string>
+    <string name="microphone_permission_title">Dostęp do mikrofonu</string>
+    <string name="microphone_permission_message">Mikrofon jest potrzebny do odbierania wiadomości zakodowanych w wysokich częstotliwościach.</string>
 </resources>
-
 ```
 
 ## `app/src/main/res/values/themes.xml`
@@ -2412,73 +1677,431 @@ public final class UltrasonicModem implements AutoCloseable {
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.UltrasonicMessenger" parent="Theme.MaterialComponents.Light.NoActionBar">
-        <item name="colorPrimary">@color/primary</item>
-        <item name="colorPrimaryVariant">@color/primary_dark</item>
-        <item name="colorSecondary">@color/primary</item>
+    <style name="Theme.UltrasonicChat" parent="Theme.Material3.Dark.NoActionBar">
         <item name="android:fontFamily">sans</item>
-        <item name="fontFamily">sans</item>
-        <item name="android:windowLightStatusBar">true</item>
-        <item name="android:statusBarColor">@color/surface</item>
-        <item name="android:navigationBarColor">@color/surface</item>
+        <item name="android:colorAccent">@color/primary</item>
         <item name="android:windowBackground">@color/background</item>
-        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:statusBarColor">@color/background</item>
+        <item name="android:navigationBarColor">@color/background</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
     </style>
 </resources>
-
 ```
 
-## `build.gradle`
+## `app/src/main/res/values-night/themes.xml`
 
-```groovy
-plugins {
-    id 'com.android.application' version '8.13.2' apply false
-}
-
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.UltrasonicChat" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">@color/primary</item>
+        <item name="android:windowBackground">@color/background</item>
+        <item name="android:statusBarColor">@color/background</item>
+        <item name="android:navigationBarColor">@color/background</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+</resources>
 ```
 
-## `gradle/wrapper/gradle-wrapper.properties`
+## `README.md`
+
+```markdown
+# Ultrasonic Chat
+
+Aplikacja Android w Javie przesyłająca krótkie wiadomości tekstowe przez wysokie częstotliwości dźwiękowe 18–20 kHz.
+
+## Uruchomienie
+
+1. Otwórz katalog projektu w Android Studio.
+2. Ustaw Gradle JDK na JDK 22 albo wbudowany JBR zgodny z projektem.
+3. Zainstaluj Android SDK 36.
+4. Wykonaj synchronizację Gradle albo uruchom `gradlew.bat assembleDebug` w Windows.
+5. Uruchom aplikację na dwóch fizycznych telefonach.
+6. Zezwól na mikrofon i ustaw głośność multimediów mniej więcej na 70–90%.
+
+## Protokół
+
+- próbkowanie: 48 kHz, PCM 16-bit mono,
+- ton: 300 ms,
+- przerwa: 100 ms,
+- START: 18 000 Hz, trzy powtórzenia,
+- dane: 16 symboli 18 200–19 700 Hz, krok 100 Hz,
+- END: 19 900 Hz, dwa powtórzenia,
+- tekst: UTF-8,
+- kontrola błędów: CRC-8.
+
+Każdy bajt jest dzielony na dwa półbajty. Jest to stabilniejsze niż bezpośrednie `18000 + char * 20`, które dla części ASCII przekracza 20 kHz, a dla UTF-8 wymagałoby jeszcze większego pasma.
+
+## Ważne ograniczenia
+
+Nie każdy telefon poprawnie emituje lub rejestruje 18–20 kHz. Filtry mikrofonu, głośnika, etui, odległość i hałas mogą ograniczać skuteczność. Najlepsze wyniki daje odległość 10–80 cm i ciche pomieszczenie.
+
+Odbiornik działa w osobnym wątku, kiedy ekran aplikacji jest aktywny. Dalsze słuchanie po przejściu aplikacji do tła wymaga foreground service z widocznym powiadomieniem i dodatkowymi uprawnieniami systemowymi.
+```
+
+## `.gitignore`
+
+```gitignore
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+app/build
+```
+
+## `gradlew`
 
 ```text
-distributionBase=GRADLE_USER_HOME
-distributionPath=wrapper/dists
-distributionUrl=https\://services.gradle.org/distributions/gradle-8.13-bin.zip
-networkTimeout=10000
-validateDistributionUrl=true
-zipStoreBase=GRADLE_USER_HOME
-zipStorePath=wrapper/dists
+#!/bin/sh
 
+#
+# Copyright © 2015 the original authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+##############################################################################
+#
+#   Gradle start up script for POSIX generated by Gradle.
+#
+#   Important for running:
+#
+#   (1) You need a POSIX-compliant shell to run this script. If your /bin/sh is
+#       noncompliant, but you have some other compliant shell such as ksh or
+#       bash, then to run this script, type that shell name before the whole
+#       command line, like:
+#
+#           ksh Gradle
+#
+#       Busybox and similar reduced shells will NOT work, because this script
+#       requires all of these POSIX shell features:
+#         * functions;
+#         * expansions «$var», «${var}», «${var:-default}», «${var+SET}»,
+#           «${var#prefix}», «${var%suffix}», and «$( cmd )»;
+#         * compound commands having a testable exit status, especially «case»;
+#         * various built-in commands including «command», «set», and «ulimit».
+#
+#   Important for patching:
+#
+#   (2) This script targets any POSIX shell, so it avoids extensions provided
+#       by Bash, Ksh, etc; in particular arrays are avoided.
+#
+#       The "traditional" practice of packing multiple parameters into a
+#       space-separated string is a well documented source of bugs and security
+#       problems, so this is (mostly) avoided, by progressively accumulating
+#       options in "$@", and eventually passing that to Java.
+#
+#       Where the inherited environment variables (DEFAULT_JVM_OPTS, JAVA_OPTS,
+#       and GRADLE_OPTS) rely on word-splitting, this is performed explicitly;
+#       see the in-line comments for details.
+#
+#       There are tweaks for specific operating systems such as AIX, CygWin,
+#       Darwin, MinGW, and NonStop.
+#
+#   (3) This script is generated from the Groovy template
+#       https://github.com/gradle/gradle/blob/HEAD/platforms/jvm/plugins-application/src/main/resources/org/gradle/api/internal/plugins/unixStartScript.txt
+#       within the Gradle project.
+#
+#       You can find Gradle at https://github.com/gradle/gradle/.
+#
+##############################################################################
+
+# Attempt to set APP_HOME
+
+# Resolve links: $0 may be a link
+app_path=$0
+
+# Need this for daisy-chained symlinks.
+while
+    APP_HOME=${app_path%"${app_path##*/}"}  # leaves a trailing /; empty if no leading path
+    [ -h "$app_path" ]
+do
+    ls=$( ls -ld "$app_path" )
+    link=${ls#*' -> '}
+    case $link in             #(
+      /*)   app_path=$link ;; #(
+      *)    app_path=$APP_HOME$link ;;
+    esac
+done
+
+# This is normally unused
+# shellcheck disable=SC2034
+APP_BASE_NAME=${0##*/}
+# Discard cd standard output in case $CDPATH is set (https://github.com/gradle/gradle/issues/25036)
+APP_HOME=$( cd -P "${APP_HOME:-./}" > /dev/null && printf '%s\n' "$PWD" ) || exit
+
+# Use the maximum available, or set MAX_FD != -1 to use that value.
+MAX_FD=maximum
+
+warn () {
+    echo "$*"
+} >&2
+
+die () {
+    echo
+    echo "$*"
+    echo
+    exit 1
+} >&2
+
+# OS specific support (must be 'true' or 'false').
+cygwin=false
+msys=false
+darwin=false
+nonstop=false
+case "$( uname )" in                #(
+  CYGWIN* )         cygwin=true  ;; #(
+  Darwin* )         darwin=true  ;; #(
+  MSYS* | MINGW* )  msys=true    ;; #(
+  NONSTOP* )        nonstop=true ;;
+esac
+
+
+
+# Determine the Java command to use to start the JVM.
+if [ -n "$JAVA_HOME" ] ; then
+    if [ -x "$JAVA_HOME/jre/sh/java" ] ; then
+        # IBM's JDK on AIX uses strange locations for the executables
+        JAVACMD=$JAVA_HOME/jre/sh/java
+    else
+        JAVACMD=$JAVA_HOME/bin/java
+    fi
+    if [ ! -x "$JAVACMD" ] ; then
+        die "ERROR: JAVA_HOME is set to an invalid directory: $JAVA_HOME
+
+Please set the JAVA_HOME variable in your environment to match the
+location of your Java installation."
+    fi
+else
+    JAVACMD=java
+    if ! command -v java >/dev/null 2>&1
+    then
+        die "ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
+
+Please set the JAVA_HOME variable in your environment to match the
+location of your Java installation."
+    fi
+fi
+
+# Increase the maximum file descriptors if we can.
+if ! "$cygwin" && ! "$darwin" && ! "$nonstop" ; then
+    case $MAX_FD in #(
+      max*)
+        # In POSIX sh, ulimit -H is undefined. That's why the result is checked to see if it worked.
+        # shellcheck disable=SC2039,SC3045
+        MAX_FD=$( ulimit -H -n ) ||
+            warn "Could not query maximum file descriptor limit"
+    esac
+    case $MAX_FD in  #(
+      '' | soft) :;; #(
+      *)
+        # In POSIX sh, ulimit -n is undefined. That's why the result is checked to see if it worked.
+        # shellcheck disable=SC2039,SC3045
+        ulimit -n "$MAX_FD" ||
+            warn "Could not set maximum file descriptor limit to $MAX_FD"
+    esac
+fi
+
+# Collect all arguments for the java command, stacking in reverse order:
+#   * args from the command line
+#   * the main class name
+#   * -classpath
+#   * -D...appname settings
+#   * --module-path (only if needed)
+#   * DEFAULT_JVM_OPTS, JAVA_OPTS, and GRADLE_OPTS environment variables.
+
+# For Cygwin or MSYS, switch paths to Windows format before running java
+if "$cygwin" || "$msys" ; then
+    APP_HOME=$( cygpath --path --mixed "$APP_HOME" )
+
+    JAVACMD=$( cygpath --unix "$JAVACMD" )
+
+    # Now convert the arguments - kludge to limit ourselves to /bin/sh
+    for arg do
+        if
+            case $arg in                                #(
+              -*)   false ;;                            # don't mess with options #(
+              /?*)  t=${arg#/} t=/${t%%/*}              # looks like a POSIX filepath
+                    [ -e "$t" ] ;;                      #(
+              *)    false ;;
+            esac
+        then
+            arg=$( cygpath --path --ignore --mixed "$arg" )
+        fi
+        # Roll the args list around exactly as many times as the number of
+        # args, so each arg winds up back in the position where it started, but
+        # possibly modified.
+        #
+        # NB: a `for` loop captures its iteration list before it begins, so
+        # changing the positional parameters here affects neither the number of
+        # iterations, nor the values presented in `arg`.
+        shift                   # remove old arg
+        set -- "$@" "$arg"      # push replacement arg
+    done
+fi
+
+
+# Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
+DEFAULT_JVM_OPTS='"-Xmx64m" "-Xms64m"'
+
+# Collect all arguments for the java command:
+#   * DEFAULT_JVM_OPTS, JAVA_OPTS, and optsEnvironmentVar are not allowed to contain shell fragments,
+#     and any embedded shellness will be escaped.
+#   * For example: A user cannot expect ${Hostname} to be expanded, as it is an environment variable and will be
+#     treated as '${Hostname}' itself on the command line.
+
+set -- \
+        "-Dorg.gradle.appname=$APP_BASE_NAME" \
+        -jar "$APP_HOME/gradle/wrapper/gradle-wrapper.jar" \
+        "$@"
+
+# Stop when "xargs" is not available.
+if ! command -v xargs >/dev/null 2>&1
+then
+    die "xargs is not available"
+fi
+
+# Use "xargs" to parse quoted args.
+#
+# With -n1 it outputs one arg per line, with the quotes and backslashes removed.
+#
+# In Bash we could simply go:
+#
+#   readarray ARGS < <( xargs -n1 <<<"$var" ) &&
+#   set -- "${ARGS[@]}" "$@"
+#
+# but POSIX shell has neither arrays nor command substitution, so instead we
+# post-process each arg (as a line of input to sed) to backslash-escape any
+# character that might be a shell metacharacter, then use eval to reverse
+# that process (while maintaining the separation between arguments), and wrap
+# the whole thing up as a single "set" statement.
+#
+# This will of course break if any of these variables contains a newline or
+# an unmatched quote.
+#
+
+eval "set -- $(
+        printf '%s\n' "$DEFAULT_JVM_OPTS $JAVA_OPTS $GRADLE_OPTS" |
+        xargs -n1 |
+        sed ' s~[^-[:alnum:]+,./:=@_]~\\&~g; ' |
+        tr '\n' ' '
+    )" '"$@"'
+
+exec "$JAVACMD" "$@"
 ```
 
-## `gradle.properties`
+## `gradlew.bat`
 
-```text
-org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
-android.useAndroidX=true
-android.nonTransitiveRClass=true
+```bat
+@rem
+@rem Copyright 2015 the original author or authors.
+@rem
+@rem Licensed under the Apache License, Version 2.0 (the "License");
+@rem you may not use this file except in compliance with the License.
+@rem You may obtain a copy of the License at
+@rem
+@rem      https://www.apache.org/licenses/LICENSE-2.0
+@rem
+@rem Unless required by applicable law or agreed to in writing, software
+@rem distributed under the License is distributed on an "AS IS" BASIS,
+@rem WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+@rem See the License for the specific language governing permissions and
+@rem limitations under the License.
+@rem
 
-```
+@if "%DEBUG%"=="" @echo off
+@rem ##########################################################################
+@rem
+@rem  Gradle startup script for Windows
+@rem
+@rem ##########################################################################
 
-## `settings.gradle`
+@rem Set local scope for the variables with windows NT shell
+if "%OS%"=="Windows_NT" setlocal
 
-```groovy
-pluginManagement {
-    repositories {
-        google()
-        mavenCentral()
-        gradlePluginPortal()
-    }
-}
+set DIRNAME=%~dp0
+if "%DIRNAME%"=="" set DIRNAME=.
+set APP_BASE_NAME=%~n0
+set APP_HOME=%DIRNAME%
 
-dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
+@rem Resolve any "." and ".." in APP_HOME to make it shorter.
+for %%i in ("%APP_HOME%") do set APP_HOME=%%~fi
 
-rootProject.name = 'UltrasonicMessenger'
-include ':app'
+@rem Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
+set DEFAULT_JVM_OPTS="-Xmx64m" "-Xms64m"
 
+@rem Find java.exe
+if defined JAVA_HOME goto findJavaFromJavaHome
+
+set JAVA_EXE=java.exe
+%JAVA_EXE% -version >NUL 2>&1
+if %ERRORLEVEL% equ 0 goto execute
+
+echo.
+echo ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
+echo.
+echo Please set the JAVA_HOME variable in your environment to match the
+echo location of your Java installation.
+
+goto fail
+
+:findJavaFromJavaHome
+set JAVA_HOME=%JAVA_HOME:"=%
+set JAVA_EXE=%JAVA_HOME%/bin/java.exe
+
+if exist "%JAVA_EXE%" goto execute
+
+echo.
+echo ERROR: JAVA_HOME is set to an invalid directory: %JAVA_HOME%
+echo.
+echo Please set the JAVA_HOME variable in your environment to match the
+echo location of your Java installation.
+
+goto fail
+
+:execute
+@rem Setup the command line
+
+set CLASSPATH=%APP_HOME%\gradle\wrapper\gradle-wrapper.jar
+
+
+@rem Execute Gradle
+"%JAVA_EXE%" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %GRADLE_OPTS% "-Dorg.gradle.appname=%APP_BASE_NAME%" -classpath "%CLASSPATH%" org.gradle.wrapper.GradleWrapperMain %*
+
+:end
+@rem End local scope for the variables with windows NT shell
+if %ERRORLEVEL% equ 0 goto mainEnd
+
+:fail
+rem Set variable GRADLE_EXIT_CONSOLE if you need the _script_ return code instead of
+rem the _cmd.exe /c_ return code!
+set EXIT_CODE=%ERRORLEVEL%
+if %EXIT_CODE% equ 0 set EXIT_CODE=1
+if not ""=="%GRADLE_EXIT_CONSOLE%" exit %EXIT_CODE%
+exit /b %EXIT_CODE%
+
+:mainEnd
+if "%OS%"=="Windows_NT" endlocal
+
+:omega
 ```

@@ -1,17 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="white">#FFFFFFFF</color>
-    <color name="black">#FF111318</color>
-    <color name="background">#FFF7F8FC</color>
-    <color name="surface">#FFFFFFFF</color>
-    <color name="primary">#FF635BFF</color>
-    <color name="primary_dark">#FF4D45E6</color>
-    <color name="primary_soft">#FFE9E7FF</color>
-    <color name="text_primary">#FF15171C</color>
-    <color name="text_secondary">#FF777B87</color>
-    <color name="divider">#FFE8EAF0</color>
-    <color name="received_bubble">#FFEAECF2</color>
-    <color name="online">#FF35C46A</color>
-    <color name="danger">#FFE34B5F</color>
+    <color name="background">#121212</color>
+    <color name="surface">#1A1B1F</color>
+    <color name="surface_soft">#23252B</color>
+    <color name="surface_border">#30323A</color>
+    <color name="primary">#746BFF</color>
+    <color name="primary_pressed">#6258EA</color>
+    <color name="text_primary">#F7F7FA</color>
+    <color name="text_secondary">#A8AAB3</color>
+    <color name="received_text">#F1F1F4</color>
+    <color name="status_green">#5DD39E</color>
+    <color name="status_red">#FF6B6B</color>
+    <color name="status_yellow">#F6C85F</color>
     <color name="transparent">#00000000</color>
 </resources>
