@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Ultrasonic Chat"
+rootProject.name = 'UltrasonicMessenger'
 include ':app'

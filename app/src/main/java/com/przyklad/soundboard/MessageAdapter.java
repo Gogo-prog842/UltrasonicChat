@@ -1,43 +1,39 @@
 package com.przyklad.soundboard;
 
-import android.content.Context;
 import android.graphics.Color;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public final class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageViewHolder> {
-
     private final List<ChatMessage> messages = new ArrayList<>();
+    private final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
 
-    public void addMessage(ChatMessage message) {
+    public void submitList(@NonNull List<ChatMessage> newMessages) {
+        messages.clear();
+        messages.addAll(newMessages);
+        notifyDataSetChanged();
+    }
+
+    public void addMessage(@NonNull ChatMessage message) {
         messages.add(message);
         notifyItemInserted(messages.size() - 1);
     }
 
-    public void replaceMessages(List<ChatMessage> restoredMessages) {
-        messages.clear();
-        messages.addAll(restoredMessages);
-        notifyDataSetChanged();
-    }
-
-    public List<ChatMessage> snapshot() {
-        return Collections.unmodifiableList(new ArrayList<>(messages));
-    }
-
-    public boolean isEmpty() {
-        return messages.isEmpty();
+    public int getLastPosition() {
+        return Math.max(0, messages.size() - 1);
     }
 
     @NonNull
@@ -50,7 +46,23 @@ public final class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.Me
 
     @Override
     public void onBindViewHolder(@NonNull MessageViewHolder holder, int position) {
-        holder.bind(messages.get(position));
+        ChatMessage message = messages.get(position);
+        holder.messageText.setText(message.getText());
+        holder.messageTime.setText(timeFormat.format(new Date(message.getTimestamp())));
+
+        LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) holder.bubbleContainer.getLayoutParams();
+        if (message.isSentByMe()) {
+            params.gravity = Gravity.END;
+            holder.bubbleContainer.setBackgroundResource(R.drawable.send_bubble);
+            holder.messageText.setTextColor(Color.WHITE);
+            holder.messageTime.setTextColor(0xCCFFFFFF);
+        } else {
+            params.gravity = Gravity.START;
+            holder.bubbleContainer.setBackgroundResource(R.drawable.receive_bubble);
+            holder.messageText.setTextColor(holder.itemView.getContext().getColor(R.color.text_primary));
+            holder.messageTime.setTextColor(holder.itemView.getContext().getColor(R.color.text_secondary));
+        }
+        holder.bubbleContainer.setLayoutParams(params);
     }
 
     @Override
@@ -59,41 +71,15 @@ public final class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.Me
     }
 
     static final class MessageViewHolder extends RecyclerView.ViewHolder {
-        private final TextView messageText;
+        final LinearLayout bubbleContainer;
+        final TextView messageText;
+        final TextView messageTime;
 
         MessageViewHolder(@NonNull View itemView) {
             super(itemView);
+            bubbleContainer = itemView.findViewById(R.id.bubbleContainer);
             messageText = itemView.findViewById(R.id.messageText);
-        }
-
-        void bind(ChatMessage message) {
-            Context context = itemView.getContext();
-            messageText.setText(message.getText());
-
-            FrameLayout.LayoutParams params =
-                    (FrameLayout.LayoutParams) messageText.getLayoutParams();
-
-            int sideMargin = dp(context, 64);
-            if (message.isSentByMe()) {
-                params.gravity = Gravity.END;
-                params.setMargins(sideMargin, 0, 0, 0);
-                messageText.setBackground(
-                        ContextCompat.getDrawable(context, R.drawable.send_bubble));
-                messageText.setTextColor(Color.WHITE);
-            } else {
-                params.gravity = Gravity.START;
-                params.setMargins(0, 0, sideMargin, 0);
-                messageText.setBackground(
-                        ContextCompat.getDrawable(context, R.drawable.receive_bubble));
-                messageText.setTextColor(
-                        ContextCompat.getColor(context, R.color.received_text));
-            }
-
-            messageText.setLayoutParams(params);
-        }
-
-        private static int dp(Context context, int value) {
-            return Math.round(value * context.getResources().getDisplayMetrics().density);
+            messageTime = itemView.findViewById(R.id.messageTime);
         }
     }
 }

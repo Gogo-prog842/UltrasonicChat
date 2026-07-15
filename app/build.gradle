@@ -9,7 +9,7 @@ android {
     defaultConfig {
         applicationId 'com.przyklad.soundboard'
         minSdk 26
-        targetSdk 36
+        targetSdk 35
         versionCode 1
         versionName '1.0'
     }
@@ -22,8 +22,7 @@ android {
     }
 
     compileOptions {
-        // Gradle może działać na JDK 22, ale kod Androida jest kompilowany
-        // do oficjalnie wspieranego poziomu bytecode Java 17.
+        // Gradle może działać na JDK 22. Kod Androida kompilujemy do wspieranego bytecode Java 17.
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }

@@ -1,21 +1,19 @@
 package com.przyklad.soundboard;
 
-import android.Manifest;
-import android.content.pm.PackageManager;
-import android.content.res.ColorStateList;
+import android.content.Intent;
 import android.os.Bundle;
+import android.text.InputType;
 import android.view.View;
-import android.view.inputmethod.EditorInfo;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
-import android.widget.ImageButton;
+import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
@@ -23,322 +21,148 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.material.snackbar.Snackbar;
-
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 public final class MainActivity extends AppCompatActivity {
+    public static final String EXTRA_NICKNAME = "nickname";
+    public static final String EXTRA_CHANNEL = "channel";
 
-    private static final String STATE_TEXTS = "chat_texts";
-    private static final String STATE_SENT_FLAGS = "chat_sent_flags";
-
-    private RecyclerView messagesList;
-    private EditText messageInput;
-    private ImageButton sendButton;
-    private TextView statusText;
-    private View statusDot;
+    private ChatRepository repository;
+    private ChatListAdapter adapter;
     private TextView emptyText;
-
-    private MessageAdapter adapter;
-    private UltrasonicModem modem;
-    private boolean receiverActive = false;
-
-    private final ActivityResultLauncher<String> microphonePermissionLauncher =
-            registerForActivityResult(
-                    new ActivityResultContracts.RequestPermission(),
-                    granted -> {
-                        if (granted) {
-                            startReceiverIfAllowed();
-                        } else {
-                            setStatus(
-                                    "Brak mikrofonu • odbiór wyłączony",
-                                    R.color.status_red
-                            );
-                            Snackbar.make(
-                                    messageInput,
-                                    "Możesz nadawać, ale odbiór wymaga mikrofonu.",
-                                    Snackbar.LENGTH_LONG
-                            ).show();
-                        }
-                    }
-            );
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         setContentView(R.layout.activity_main);
+        applySystemBarInsets(findViewById(R.id.mainRoot));
 
-        bindViews();
-        configureInsets();
-        configureMessages(savedInstanceState);
-        configureComposer();
-        createModem();
-        requestMicrophonePermissionIfNeeded();
-    }
-
-    private void bindViews() {
-        messagesList = findViewById(R.id.messagesList);
-        messageInput = findViewById(R.id.messageInput);
-        sendButton = findViewById(R.id.sendButton);
-        statusText = findViewById(R.id.statusText);
-        statusDot = findViewById(R.id.statusDot);
+        repository = new ChatRepository(this);
         emptyText = findViewById(R.id.emptyText);
+
+        RecyclerView recyclerView = findViewById(R.id.chatListRecyclerView);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        adapter = new ChatListAdapter(this::openChat);
+        recyclerView.setAdapter(adapter);
+
+        findViewById(R.id.searchButton).setOnClickListener(view -> showSearchDialog());
+        FloatingActionButton fab = findViewById(R.id.newChatFab);
+        fab.setOnClickListener(view -> showNewChatDialog());
     }
 
-    private void configureInsets() {
-        View root = findViewById(R.id.rootContainer);
-        int initialLeft = root.getPaddingLeft();
-        int initialTop = root.getPaddingTop();
-        int initialRight = root.getPaddingRight();
-        int initialBottom = root.getPaddingBottom();
-
-        ViewCompat.setOnApplyWindowInsetsListener(root, (view, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
-            int bottom = Math.max(systemBars.bottom, ime.bottom);
-
-            view.setPadding(
-                    initialLeft + systemBars.left,
-                    initialTop + systemBars.top,
-                    initialRight + systemBars.right,
-                    initialBottom + bottom
-            );
-            return insets;
-        });
+    @Override
+    protected void onResume() {
+        super.onResume();
+        reloadConversations();
     }
 
-    private void configureMessages(Bundle savedInstanceState) {
-        adapter = new MessageAdapter();
-
-        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
-        layoutManager.setStackFromEnd(true);
-        messagesList.setLayoutManager(layoutManager);
-        messagesList.setAdapter(adapter);
-
-        adapter.registerAdapterDataObserver(new RecyclerView.AdapterDataObserver() {
-            @Override
-            public void onChanged() {
-                updateEmptyState();
-            }
-
-            @Override
-            public void onItemRangeInserted(int positionStart, int itemCount) {
-                updateEmptyState();
-                scrollToLastMessage();
-            }
-        });
-
-        restoreMessages(savedInstanceState);
+    private void reloadConversations() {
+        adapter.submitList(repository.getConversations());
         updateEmptyState();
-    }
-
-    private void restoreMessages(Bundle state) {
-        if (state == null) {
-            return;
-        }
-
-        ArrayList<String> texts = state.getStringArrayList(STATE_TEXTS);
-        boolean[] sentFlags = state.getBooleanArray(STATE_SENT_FLAGS);
-        if (texts == null || sentFlags == null || texts.size() != sentFlags.length) {
-            return;
-        }
-
-        List<ChatMessage> restored = new ArrayList<>();
-        for (int i = 0; i < texts.size(); i++) {
-            restored.add(new ChatMessage(texts.get(i), sentFlags[i]));
-        }
-        adapter.replaceMessages(restored);
-    }
-
-    private void configureComposer() {
-        sendButton.setOnClickListener(view -> sendCurrentMessage());
-
-        messageInput.setOnEditorActionListener((view, actionId, event) -> {
-            if (actionId == EditorInfo.IME_ACTION_SEND) {
-                sendCurrentMessage();
-                return true;
-            }
-            return false;
-        });
-    }
-
-    private void createModem() {
-        modem = new UltrasonicModem(new UltrasonicModem.Callback() {
-            @Override
-            public void onReceiverStateChanged(boolean active) {
-                runOnUiThread(() -> {
-                    receiverActive = active;
-                    if (modem == null || !modem.isTransmitting()) {
-                        if (active) {
-                            setStatus("Nasłuchiwanie • 18–20 kHz", R.color.status_green);
-                        } else if (hasMicrophonePermission()) {
-                            setStatus("Odbiornik zatrzymany", R.color.status_yellow);
-                        }
-                    }
-                });
-            }
-
-            @Override
-            public void onTransmissionStateChanged(boolean active) {
-                runOnUiThread(() -> {
-                    sendButton.setEnabled(!active);
-                    sendButton.setAlpha(active ? 0.55f : 1.0f);
-
-                    if (active) {
-                        setStatus("Nadawanie wiadomości…", R.color.primary);
-                    } else if (receiverActive) {
-                        setStatus("Nasłuchiwanie • 18–20 kHz", R.color.status_green);
-                    } else if (!hasMicrophonePermission()) {
-                        setStatus("Brak mikrofonu • odbiór wyłączony", R.color.status_red);
-                    }
-                });
-            }
-
-            @Override
-            public void onMessageReceived(@NonNull String message) {
-                runOnUiThread(() -> addMessage(message, false));
-            }
-
-            @Override
-            public void onError(@NonNull String message) {
-                runOnUiThread(() -> Snackbar.make(
-                        messageInput,
-                        message,
-                        Snackbar.LENGTH_LONG
-                ).show());
-            }
-        });
-    }
-
-    private void sendCurrentMessage() {
-        String text = messageInput.getText().toString().trim();
-        if (text.isEmpty()) {
-            return;
-        }
-
-        int byteLength = text.getBytes(StandardCharsets.UTF_8).length;
-        if (byteLength > UltrasonicModem.MAX_PAYLOAD_BYTES) {
-            Snackbar.make(
-                    messageInput,
-                    "Wiadomość ma " + byteLength + " bajtów. Limit to "
-                            + UltrasonicModem.MAX_PAYLOAD_BYTES + ".",
-                    Snackbar.LENGTH_LONG
-            ).show();
-            return;
-        }
-
-        if (modem == null || !modem.send(text)) {
-            Snackbar.make(
-                    messageInput,
-                    "Nadajnik jest zajęty. Poczekaj na zakończenie transmisji.",
-                    Snackbar.LENGTH_SHORT
-            ).show();
-            return;
-        }
-
-        addMessage(text, true);
-        messageInput.setText("");
-    }
-
-    private void addMessage(String text, boolean sentByMe) {
-        adapter.addMessage(new ChatMessage(text, sentByMe));
-    }
-
-    private void scrollToLastMessage() {
-        if (adapter.getItemCount() > 0) {
-            messagesList.post(() ->
-                    messagesList.smoothScrollToPosition(adapter.getItemCount() - 1));
-        }
     }
 
     private void updateEmptyState() {
         emptyText.setVisibility(adapter.isEmpty() ? View.VISIBLE : View.GONE);
     }
 
-    private void requestMicrophonePermissionIfNeeded() {
-        if (hasMicrophonePermission()) {
-            startReceiverIfAllowed();
-            return;
-        }
+    private void showSearchDialog() {
+        EditText input = new EditText(this);
+        input.setHint(R.string.search_hint);
+        input.setSingleLine(true);
+        input.setInputType(InputType.TYPE_CLASS_TEXT);
+        int padding = dp(20);
+        input.setPadding(padding, dp(8), padding, dp(8));
 
-        if (shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO)) {
-            new AlertDialog.Builder(this)
-                    .setTitle(R.string.microphone_permission_title)
-                    .setMessage(R.string.microphone_permission_message)
-                    .setNegativeButton("Nie teraz", (dialog, which) -> setStatus(
-                            "Brak mikrofonu • odbiór wyłączony",
-                            R.color.status_red
-                    ))
-                    .setPositiveButton("Zezwól", (dialog, which) ->
-                            microphonePermissionLauncher.launch(
-                                    Manifest.permission.RECORD_AUDIO))
-                    .show();
-        } else {
-            microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO);
-        }
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.search)
+                .setView(input)
+                .setPositiveButton(R.string.search, (dialog, which) -> {
+                    adapter.filter(input.getText().toString());
+                    updateEmptyState();
+                })
+                .setNeutralButton("Wyczyść", (dialog, which) -> {
+                    adapter.filter("");
+                    updateEmptyState();
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
     }
 
-    private boolean hasMicrophonePermission() {
-        return ContextCompat.checkSelfPermission(
+    private void showNewChatDialog() {
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        int horizontal = dp(22);
+        container.setPadding(horizontal, dp(6), horizontal, 0);
+
+        EditText nicknameInput = new EditText(this);
+        nicknameInput.setHint(R.string.nickname);
+        nicknameInput.setSingleLine(true);
+        nicknameInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS);
+        container.addView(nicknameInput, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+
+        Spinner channelSpinner = new Spinner(this);
+        ArrayAdapter<CharSequence> spinnerAdapter = ArrayAdapter.createFromResource(
                 this,
-                Manifest.permission.RECORD_AUDIO
-        ) == PackageManager.PERMISSION_GRANTED;
+                R.array.channel_labels,
+                android.R.layout.simple_spinner_item
+        );
+        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        channelSpinner.setAdapter(spinnerAdapter);
+        LinearLayout.LayoutParams spinnerParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(54)
+        );
+        spinnerParams.topMargin = dp(10);
+        container.addView(channelSpinner, spinnerParams);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(R.string.new_chat)
+                .setView(container)
+                .setPositiveButton(R.string.create, null)
+                .setNegativeButton(R.string.cancel, null)
+                .create();
+
+        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                .setOnClickListener(view -> {
+                    String nickname = nicknameInput.getText().toString().trim();
+                    if (nickname.isEmpty()) {
+                        nicknameInput.setError(getString(R.string.invalid_nickname));
+                        return;
+                    }
+                    int channel = channelSpinner.getSelectedItemPosition();
+                    repository.ensureConversation(nickname, channel);
+                    dialog.dismiss();
+                    openChat(new ChatSummary(
+                            ChatRepository.conversationId(nickname, channel),
+                            nickname,
+                            channel,
+                            "Brak wiadomości",
+                            0L
+                    ));
+                }));
+        dialog.show();
     }
 
-    private void startReceiverIfAllowed() {
-        if (modem != null && hasMicrophonePermission()) {
-            modem.startReceiver();
-        }
+    private void openChat(@NonNull ChatSummary summary) {
+        Intent intent = new Intent(this, ChatActivity.class);
+        intent.putExtra(EXTRA_NICKNAME, summary.getNickname());
+        intent.putExtra(EXTRA_CHANNEL, summary.getChannelIndex());
+        startActivity(intent);
     }
 
-    private void setStatus(String text, int colorRes) {
-        statusText.setText(text);
-        int color = ContextCompat.getColor(this, colorRes);
-        ViewCompat.setBackgroundTintList(statusDot, ColorStateList.valueOf(color));
+    private void applySystemBarInsets(@NonNull View root) {
+        ViewCompat.setOnApplyWindowInsetsListener(root, (view, insets) -> {
+            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+            return insets;
+        });
     }
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-        startReceiverIfAllowed();
-    }
-
-    @Override
-    protected void onStop() {
-        if (modem != null) {
-            modem.stopReceiver();
-        }
-        super.onStop();
-    }
-
-    @Override
-    protected void onSaveInstanceState(@NonNull Bundle outState) {
-        super.onSaveInstanceState(outState);
-
-        List<ChatMessage> snapshot = adapter.snapshot();
-        ArrayList<String> texts = new ArrayList<>(snapshot.size());
-        boolean[] sentFlags = new boolean[snapshot.size()];
-
-        for (int i = 0; i < snapshot.size(); i++) {
-            ChatMessage message = snapshot.get(i);
-            texts.add(message.getText());
-            sentFlags[i] = message.isSentByMe();
-        }
-
-        outState.putStringArrayList(STATE_TEXTS, texts);
-        outState.putBooleanArray(STATE_SENT_FLAGS, sentFlags);
-    }
-
-    @Override
-    protected void onDestroy() {
-        if (modem != null) {
-            modem.close();
-            modem = null;
-        }
-        super.onDestroy();
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
     }
 }
