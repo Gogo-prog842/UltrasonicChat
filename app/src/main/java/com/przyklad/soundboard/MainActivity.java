@@ -1,168 +1,108 @@
 package com.przyklad.soundboard;
 
-import android.content.Intent;
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.media.AudioFormat;
+import android.media.AudioManager;
+import android.media.AudioTrack;
 import android.os.Bundle;
-import android.text.InputType;
 import android.view.View;
-import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.EditText;
-import android.widget.LinearLayout;
-import android.widget.Spinner;
 import android.widget.TextView;
-import android.widget.Toast;
-
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowCompat;
-import androidx.core.view.WindowInsetsCompat;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
+public class MainActivity extends AppCompatActivity {
 
-public final class MainActivity extends AppCompatActivity {
-    public static final String EXTRA_NICKNAME = "nickname";
-    public static final String EXTRA_CHANNEL = "channel";
-
-    private ChatRepository repository;
-    private ChatListAdapter adapter;
-    private TextView emptyText;
+    private static final int REQUEST_MICROPHONE_CODE = 101;
+    private EditText inputMessage;
+    private TextView textReceived;
+    private Button buttonSend;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         setContentView(R.layout.activity_main);
-        applySystemBarInsets(findViewById(R.id.mainRoot));
 
-        repository = new ChatRepository(this);
-        emptyText = findViewById(R.id.emptyText);
+        inputMessage = findViewById(R.id.input_message);
+        textReceived = findViewById(R.id.text_received);
+        buttonSend = findViewById(R.id.button_send);
 
-        RecyclerView recyclerView = findViewById(R.id.chatListRecyclerView);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new ChatListAdapter(this::openChat);
-        recyclerView.setAdapter(adapter);
+        // Sprawdzamy uprawnienia do mikrofonu (potrzebne do późniejszego odbioru)
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, REQUEST_MICROPHONE_CODE);
+        }
 
-        findViewById(R.id.searchButton).setOnClickListener(view -> showSearchDialog());
-        FloatingActionButton fab = findViewById(R.id.newChatFab);
-        fab.setOnClickListener(view -> showNewChatDialog());
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        reloadConversations();
-    }
-
-    private void reloadConversations() {
-        adapter.submitList(repository.getConversations());
-        updateEmptyState();
-    }
-
-    private void updateEmptyState() {
-        emptyText.setVisibility(adapter.isEmpty() ? View.VISIBLE : View.GONE);
-    }
-
-    private void showSearchDialog() {
-        EditText input = new EditText(this);
-        input.setHint(R.string.search_hint);
-        input.setSingleLine(true);
-        input.setInputType(InputType.TYPE_CLASS_TEXT);
-        int padding = dp(20);
-        input.setPadding(padding, dp(8), padding, dp(8));
-
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.search)
-                .setView(input)
-                .setPositiveButton(R.string.search, (dialog, which) -> {
-                    adapter.filter(input.getText().toString());
-                    updateEmptyState();
-                })
-                .setNeutralButton("Wyczyść", (dialog, which) -> {
-                    adapter.filter("");
-                    updateEmptyState();
-                })
-                .setNegativeButton(R.string.cancel, null)
-                .show();
-    }
-
-    private void showNewChatDialog() {
-        LinearLayout container = new LinearLayout(this);
-        container.setOrientation(LinearLayout.VERTICAL);
-        int horizontal = dp(22);
-        container.setPadding(horizontal, dp(6), horizontal, 0);
-
-        EditText nicknameInput = new EditText(this);
-        nicknameInput.setHint(R.string.nickname);
-        nicknameInput.setSingleLine(true);
-        nicknameInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS);
-        container.addView(nicknameInput, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        ));
-
-        Spinner channelSpinner = new Spinner(this);
-        ArrayAdapter<CharSequence> spinnerAdapter = ArrayAdapter.createFromResource(
-                this,
-                R.array.channel_labels,
-                android.R.layout.simple_spinner_item
-        );
-        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        channelSpinner.setAdapter(spinnerAdapter);
-        LinearLayout.LayoutParams spinnerParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(54)
-        );
-        spinnerParams.topMargin = dp(10);
-        container.addView(channelSpinner, spinnerParams);
-
-        AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle(R.string.new_chat)
-                .setView(container)
-                .setPositiveButton(R.string.create, null)
-                .setNegativeButton(R.string.cancel, null)
-                .create();
-
-        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-                .setOnClickListener(view -> {
-                    String nickname = nicknameInput.getText().toString().trim();
-                    if (nickname.isEmpty()) {
-                        nicknameInput.setError(getString(R.string.invalid_nickname));
-                        return;
-                    }
-                    int channel = channelSpinner.getSelectedItemPosition();
-                    repository.ensureConversation(nickname, channel);
-                    dialog.dismiss();
-                    openChat(new ChatSummary(
-                            ChatRepository.conversationId(nickname, channel),
-                            nickname,
-                            channel,
-                            "Brak wiadomości",
-                            0L
-                    ));
-                }));
-        dialog.show();
-    }
-
-    private void openChat(@NonNull ChatSummary summary) {
-        Intent intent = new Intent(this, ChatActivity.class);
-        intent.putExtra(EXTRA_NICKNAME, summary.getNickname());
-        intent.putExtra(EXTRA_CHANNEL, summary.getChannelIndex());
-        startActivity(intent);
-    }
-
-    private void applySystemBarInsets(@NonNull View root) {
-        ViewCompat.setOnApplyWindowInsetsListener(root, (view, insets) -> {
-            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
-            return insets;
+        buttonSend.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String message = inputMessage.getText().toString();
+                if (!message.isEmpty()) {
+                    sendUltrasonicMessage(message);
+                }
+            }
         });
     }
 
-    private int dp(int value) {
-        return Math.round(value * getResources().getDisplayMetrics().density);
+    // Metoda generująca fale dźwiękowe dla każdej litery w tle
+    private void sendUltrasonicMessage(final String message) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < message.length(); i++) {
+                    char character = message.charAt(i);
+                    // Mapujemy znak ASCII na częstotliwość powyżej 18 kHz (np. litera 'A' [65] to 18000 + 65*20 = 19300 Hz)
+                    int frequency = 18000 + ((int) character * 20); 
+                    playTone(frequency, 300); // Graj dźwięk przez 300 ms
+                    try {
+                        Thread.sleep(100); // Przerwa między znakami
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }).start();
+    }
+
+    // Algorytm generujący czystą falę sinusoidalną o konkretnej częstotliwości
+    private void playTone(double frequency, int durationMs) {
+        int sampleRate = 44100;
+        int numSamples = (durationMs * sampleRate) / 1000;
+        double[] sample = new double[numSamples];
+        byte[] generatedSnd = new byte[2 * numSamples];
+
+        // Obliczanie wartości sinusoidy
+        for (int i = 0; i < numSamples; ++i) {
+            sample[i] = Math.sin(2 * Math.PI * i / (sampleRate / frequency));
+        }
+
+        // Pakowanie do formatu 16-bit PCM (dwubajtowego)
+        int idx = 0;
+        for (final double dVal : sample) {
+            final short val = (short) ((dVal * 32767));
+            generatedSnd[idx++] = (byte) (val & 0x00ff);
+            generatedSnd[idx++] = (byte) ((val & 0xff00) >>> 8);
+        }
+
+        // Odtwarzanie wygenerowanej paczki danych audio
+        AudioTrack audioTrack = new AudioTrack(
+                AudioManager.STREAM_MUSIC,
+                sampleRate,
+                AudioFormat.CHANNEL_OUT_MONO,
+                AudioFormat.ENCODING_PCM_16BIT,
+                generatedSnd.length,
+                AudioTrack.MODE_STATIC
+        );
+        audioTrack.write(generatedSnd, 0, generatedSnd.length);
+        audioTrack.play();
+        
+        try {
+            Thread.sleep(durationMs);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        audioTrack.release();
     }
 }

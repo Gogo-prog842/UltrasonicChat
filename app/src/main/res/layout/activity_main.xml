@@ -1,90 +1,53 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/mainRoot"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background">
-
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/topBar"
-        android:layout_width="0dp"
-        android:layout_height="76dp"
-        android:background="@color/surface"
-        android:elevation="2dp"
-        android:paddingStart="20dp"
-        android:paddingEnd="12dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
-
-        <TextView
-            android:id="@+id/titleText"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:text="@string/app_name"
-            android:textColor="@color/text_primary"
-            android:textSize="23sp"
-            android:textStyle="bold"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/searchButton"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <ImageButton
-            android:id="@+id/searchButton"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/search"
-            android:padding="12dp"
-            android:src="@drawable/ic_search"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/chatListRecyclerView"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:clipToPadding="false"
-        android:overScrollMode="never"
-        android:paddingTop="8dp"
-        android:paddingBottom="104dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/topBar" />
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:background="#121212">
 
     <TextView
-        android:id="@+id/emptyText"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:text="ULTRASONIC CHAT"
+        android:textColor="#00FF00"
+        android:textSize="24sp"
         android:gravity="center"
-        android:maxWidth="260dp"
-        android:text="@string/no_conversations"
-        android:textColor="@color/text_secondary"
-        android:textSize="15sp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/topBar" />
+        android:layout_marginBottom="30dp" />
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/newChatFab"
-        android:layout_width="wrap_content"
+    <EditText
+        android:id="@+id/input_message"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="22dp"
-        android:layout_marginBottom="24dp"
-        android:contentDescription="@string/new_chat"
-        android:src="@drawable/ic_add"
-        app:backgroundTint="@color/primary"
-        app:elevation="8dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:tint="@color/white" />
+        android:hint="Wpisz wiadomość..."
+        android:textColor="#FFFFFF"
+        android:textColorHint="#555555"
+        android:backgroundTint="#00FF00"
+        android:layout_marginBottom="20dp"/>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <Button
+        android:id="@+id/button_send"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="WYŚLIJ DŹWIĘKIEM"
+        android:backgroundTint="#00FF00"
+        android:textColor="#000000"
+        android:layout_marginBottom="40dp"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Odebrana wiadomość:"
+        android:textColor="#888888"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/text_received"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="..."
+        android:textColor="#00FF00"
+        android:textSize="20sp"
+        android:layout_marginTop="10dp"/>
+
+</LinearLayout>
