@@ -111,7 +111,7 @@ fun MusicAppScreen(
                 TopAppBar(
                     title = {
                         Column {
-                            Text("Local Music", fontWeight = FontWeight.Bold)
+                            Text("BeatLy", fontWeight = FontWeight.Bold)
                             Text("Offline-first Kotlin player", style = MaterialTheme.typography.labelMedium, color = Color(0xFFBDBDBD))
                         }
                     },

@@ -1,4 +1,4 @@
-# LocalMusicKotlin
+# BeatLy
 
 Nowoczesny lokalny odtwarzacz muzyki dla Androida napisany w Kotlinie, Jetpack Compose, Room i Media3.
 
@@ -35,3 +35,14 @@ https://twoj-serwer.pl/audio/test.mp3
 Plik: `app/src/main/java/com/tc20/localmusic/download/DirectAudioLinkResolver.kt`
 
 Możesz zrobić klasę np. `MyLegalResolver : LinkResolver`, która zwróci `ResolvedAudio(audioUrl = ..., suggestedTitle = ..., suggestedArtist = ..., artworkUrl = ...)`.
+
+## APK Bot
+
+Dodałem automatyczny build APK przez GitHub Actions.
+
+- Workflow: `.github/workflows/apk-bot.yml`
+- Ręczny opis: `BUILD_BOT.md`
+- Lokalny watcher: `tools/apk_bot.py`
+- Jednorazowy build: `tools/build-apk.ps1` albo `tools/build-apk.sh`
+
+Po wrzuceniu projektu na GitHub APK będzie dostępne w **Actions → APK Bot - Build Android APK → Artifacts**.

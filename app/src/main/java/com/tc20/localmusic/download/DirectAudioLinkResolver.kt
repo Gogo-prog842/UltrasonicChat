@@ -83,6 +83,6 @@ class DirectAudioLinkResolver(
     }
 
     private companion object {
-        const val USER_AGENT = "LocalMusicKotlin/1.0"
+        const val USER_AGENT = "BeatLy/1.0"
     }
 }

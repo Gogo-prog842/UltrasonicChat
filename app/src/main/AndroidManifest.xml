@@ -11,7 +11,7 @@
         android:name=".LocalMusicApp"
         android:allowBackup="true"
         android:icon="@drawable/ic_app"
-        android:label="Local Music"
+        android:label="BeatLy"
         android:roundIcon="@drawable/ic_app"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">

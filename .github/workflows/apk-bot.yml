@@ -1,0 +1,77 @@
+name: APK Bot - Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - "app/**"
+      - "build.gradle.kts"
+      - "settings.gradle.kts"
+      - "gradle.properties"
+      - ".github/workflows/apk-bot.yml"
+  pull_request:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apk-bot-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-debug-apk:
+    name: Build debug APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android platform and build tools
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-36" \
+            "build-tools;36.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.4.1"
+
+      - name: Build APK
+        shell: bash
+        run: gradle --no-daemon --stacktrace clean :app:assembleDebug
+
+      - name: Prepare artifact
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/app-debug.apk dist/BeatLy-debug.apk
+          ls -lh dist
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BeatLy-debug-apk
+          path: dist/BeatLy-debug.apk
+          if-no-files-found: error
+          retention-days: 14

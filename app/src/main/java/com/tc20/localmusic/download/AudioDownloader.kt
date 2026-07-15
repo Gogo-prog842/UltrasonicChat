@@ -45,7 +45,7 @@ class AudioDownloader(
         val request = Request.Builder()
             .url(resolved.audioUrl)
             .get()
-            .header("User-Agent", "LocalMusicKotlin/1.0")
+            .header("User-Agent", "BeatLy/1.0")
             .build()
 
         client.newCall(request).execute().use { response ->
@@ -80,7 +80,7 @@ class AudioDownloader(
         val request = Request.Builder()
             .url(url)
             .get()
-            .header("User-Agent", "LocalMusicKotlin/1.0")
+            .header("User-Agent", "BeatLy/1.0")
             .build()
         runCatching {
             client.newCall(request).execute().use { response ->
